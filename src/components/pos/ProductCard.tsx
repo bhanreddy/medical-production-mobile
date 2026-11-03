@@ -1,5 +1,6 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import React, { memo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LiquidPanel } from '@/components/glass/LiquidGlass';
 import { useTheme } from '@/hooks/useTheme';
@@ -58,7 +59,7 @@ export const ProductCard = memo(function ProductCard({ product, substitute, cart
 
 const s = StyleSheet.create({
   cell: { flex: 1, padding: 5 },
-  card: { padding: 14, borderRadius: 14, borderWidth: 1 },
+  card: { padding: 14, borderRadius: 16, borderWidth: 1 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
   icon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   barcode: { position: 'absolute', right: -3, bottom: -3, width: 19, height: 19, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
@@ -66,7 +67,7 @@ const s = StyleSheet.create({
   name: { fontSize: 14, minHeight: 42, lineHeight: 21 },
   generic: { fontSize: 12, marginTop: 3 },
   price: { fontSize: 20, marginTop: 14, marginBottom: 14, fontVariant: ['tabular-nums'] },
-  add: { minHeight: 46, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
+  add: { minHeight: 46, paddingVertical: 10, borderRadius: 12, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
   stepper: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 8 },
   step: { minWidth: 44, minHeight: 46, alignItems: 'center', justifyContent: 'center' },
 });

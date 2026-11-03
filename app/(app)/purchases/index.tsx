@@ -1,12 +1,14 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceFab, WorkspaceEmpty } from '@/components/ui/Workspace';
 import { mobileLayout } from '@/theme/mobileLayout';
 import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
-import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
-import React, { useMemo } from 'react';
-import { useWindowDimensions, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { LiquidSheen } from '@/components/glass/LiquidGlass';
+import { useMemo } from 'react';
+import { useWindowDimensions, View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
+
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -84,16 +86,7 @@ export default function PurchasesIndexScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <GlassMeshBackground />
-       <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-          <TouchableOpacity 
-            style={[styles.backBtn, { padding: 12, marginLeft: -12, marginRight: 4 }]} 
-            onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
-            hitSlop={15}
-          >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Purchases</Text>
-       </LiquidPanel>
+       <WorkspaceHeader title="Purchases" icon="bag-handle-outline" subtitle="Supplier invoices and payments" onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} />
 
        <View style={styles.listContainer}>
           {isLoading && !data ? (
@@ -113,7 +106,7 @@ export default function PurchasesIndexScreen() {
                 }
               }}
               onEndReachedThreshold={0.5}
-              ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.text.tertiary }}>No purchases found.</Text>}
+              ListEmptyComponent={<WorkspaceEmpty title="No purchases yet" description="Received supplier invoices will appear here." icon="bag-handle-outline" />}
               ListFooterComponent={
                 isFetchingNextPage ? <ActivityIndicator style={{ margin: 20 }} color={theme.colors.primary} /> : null
               }
@@ -121,12 +114,7 @@ export default function PurchasesIndexScreen() {
           )}
        </View>
 
-       <TouchableOpacity 
-         style={[styles.fab, { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: theme.colors.border }]}
-         onPress={() => router.push('/(app)/purchases/add')}
-       >
-         <Ionicons name="add" size={28} color="#FFFFFF" />
-       </TouchableOpacity>
+       <WorkspaceFab label="Record purchase" onPress={() => router.push('/(app)/purchases/add')} bottom={insets.bottom + 20} />
     </View>
   );
 }
@@ -137,7 +125,7 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: 16 },
   headerTitle: { flex: 1, fontSize: 24 },
   listContainer: { flex: 1 },
-  card: { borderWidth: 1, borderRadius: 14, padding: 14, marginHorizontal: 6, marginBottom: 12 },
+  card: { borderWidth: 1, borderRadius: 16, padding: 14, marginHorizontal: 6, marginBottom: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   cardBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },

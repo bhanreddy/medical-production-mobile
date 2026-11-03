@@ -1,6 +1,9 @@
+import { Button } from '@/components/ui/Button';
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceCard } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Linking, TextInput } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Linking, TextInput } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
@@ -107,25 +110,20 @@ export default function PatientDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <WorkspaceHeader title="Patient profile" subtitle="Contact, balance and purchase history" safeArea onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/patients')} />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} bounces={false}>
          {/* Profile Banner */}
-         <View style={[styles.bannerCard, { backgroundColor: theme.colors.primaryLight, paddingTop: insets.top + 16 }]}>
-            <TouchableOpacity 
-               onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/patients')} 
-               style={[styles.backBtn, { padding: 12 }]} 
-               hitSlop={15}
-             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-            </TouchableOpacity>
+         <View style={[styles.bannerCard, { backgroundColor: theme.colors.primaryLight, paddingTop: 16 }]}>
+
 
             <View style={styles.bannerCenter}>
                <View style={[styles.avatarBig, { backgroundColor: theme.colors.primary }]}>
-                 <Text style={[styles.avatarTextBig, { fontFamily: theme.typography.family.bold, color: '#FFF' }]}>{getInitials(customer.name)}</Text>
+                 <Text style={[styles.avatarTextBig, { fontFamily: theme.typography.family.bold, color: theme.colors.text.inverse }]}>{getInitials(customer.name)}</Text>
                </View>
                <Text style={[styles.bannerName, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>{customer.name}</Text>
                <View style={styles.starsRow}>
                   {[1,2,3,4,5].map(s => (
-                    <Ionicons key={s} name="star" size={18} color={s <= starsFilled ? '#FBBF24' : '#E2E8F0'} style={{ marginHorizontal: 2 }} />
+                    <Ionicons key={s} name="star" size={18} color={s <= starsFilled ? theme.colors.warning : theme.colors.border} style={{ marginHorizontal: 2 }} />
                   ))}
                </View>
                <View style={styles.contactRow}>
@@ -165,12 +163,7 @@ export default function PatientDetailScreen() {
                   {formatCurrency(customer.outstandingBalance)}
                 </Text>
               </View>
-              <TouchableOpacity 
-                style={[styles.recordBtn, { backgroundColor: theme.colors.danger }]} 
-                onPress={() => bottomSheetRef.current?.expand()}
-              >
-                 <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 13 }}>Record Payment</Text>
-              </TouchableOpacity>
+              <Button title="Record payment" variant="danger" onPress={() => bottomSheetRef.current?.expand()} />
            </View>
          )}
 
@@ -179,14 +172,8 @@ export default function PatientDetailScreen() {
          <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>Quick Actions</Text>
            <View style={styles.quickActionsRow}>
-              <TouchableOpacity style={[styles.qaBtn, { borderColor: theme.colors.primary }]} onPress={handleNewSale}>
-                 <Ionicons name="cart-outline" size={20} color={theme.colors.primary} />
-                 <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.family.medium, marginLeft: 8 }}>New Sale</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.qaBtn, { borderColor: '#10B981' }]} onPress={handleWhatsApp}>
-                 <Ionicons name="logo-whatsapp" size={20} color="#10B981" />
-                 <Text style={{ color: '#10B981', fontFamily: theme.typography.family.medium, marginLeft: 8 }}>Message</Text>
-              </TouchableOpacity>
+             <Button title="New sale" variant="secondary" onPress={handleNewSale} style={{ flex: 1 }} />
+             <Button title="Message" variant="secondary" onPress={handleWhatsApp} style={{ flex: 1 }} />
            </View>
          </View>
 
@@ -196,7 +183,7 @@ export default function PatientDetailScreen() {
                <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold, marginBottom: 0 }]}>Purchase History</Text>
                <TouchableOpacity><Text style={{ color: theme.colors.primary, fontSize: 13 }}>View All</Text></TouchableOpacity>
             </View>
-            <View style={[styles.historyContainer, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
+            <WorkspaceCard style={[styles.historyContainer, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
               {recent_sales.length > 0 ? (
                 <FlashListAny
                   data={recent_sales}
@@ -207,7 +194,7 @@ export default function PatientDetailScreen() {
               ) : (
                 <Text style={{ padding: 16, textAlign: 'center', color: theme.colors.text.tertiary }}>No purchases recorded.</Text>
               )}
-            </View>
+            </WorkspaceCard>
          </View>
          </ResponsiveGrid>
       </ScrollView>
@@ -241,7 +228,7 @@ export default function PatientDetailScreen() {
                  onPress={() => setPaymentMode(mode)}
                >
                  <Text style={{ 
-                   color: paymentMode === mode ? '#FFF' : theme.colors.text.primary,
+                   color: paymentMode === mode ? theme.colors.text.inverse : theme.colors.text.primary,
                    fontFamily: paymentMode === mode ? theme.typography.family.semiBold : theme.typography.family.regular
                  }}>{mode}</Text>
                </TouchableOpacity>
@@ -253,7 +240,7 @@ export default function PatientDetailScreen() {
              disabled={!paymentAmount || recordPayment.isPending}
              onPress={submitPayment}
            >
-             {recordPayment.isPending ? <ActivityIndicator color="#FFF" /> : <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Confirm Payment</Text>}
+             {recordPayment.isPending ? <ActivityIndicator color={theme.colors.text.inverse} /> : <Text style={{ color: theme.colors.text.inverse, fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Confirm Payment</Text>}
            </TouchableOpacity>
         </View>
       </BottomSheet>
@@ -271,11 +258,11 @@ const styles = StyleSheet.create({
   avatarTextBig: { fontSize: 32 },
   bannerName: { fontSize: 24, marginBottom: 6 },
   starsRow: { flexDirection: 'row', marginBottom: 8 },
-  contactRow: { flexDirection: 'row', alignItems: 'center', opacity: 0.8 },
+  contactRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', rowGap: 6 },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 12 },
   statBox: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  outstandingCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, padding: 20, borderRadius: 16, borderWidth: 1, marginTop: 12 },
-  recordBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  outstandingCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginHorizontal: 16, padding: 16, borderRadius: 16, borderWidth: 1, marginTop: 12 },
+  recordBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
   sectionTitle: { fontSize: 16, marginBottom: 12 },
   quickActionsRow: { flexDirection: 'row', gap: 12 },
   qaBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: 48, borderRadius: 12, borderWidth: 1.5 },
@@ -285,5 +272,5 @@ const styles = StyleSheet.create({
   paymentInputRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingBottom: 8 },
   paymentInput: { flex: 1, fontSize: 32, marginLeft: 8, padding: 0 },
   pmodeBtn: { flex: 1, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1 },
-  submitPayBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
+  submitPayBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });

@@ -1,6 +1,9 @@
+import { Button } from '@/components/ui/Button';
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -82,14 +85,7 @@ export default function AddPatientScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-        <TouchableOpacity onPress={goBack} style={[styles.backBtn, { padding: 12, marginLeft: -12, marginRight: 4 }]} hitSlop={15}>
-           <Ionicons name="close" size={24} color={theme.colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>
-          {isEditing ? 'Edit Patient' : 'Add New Patient'}
-        </Text>
-      </View>
+      <WorkspaceHeader title={isEditing ? "Edit patient" : "Add patient"} subtitle="Contact and billing details" close onBack={goBack} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -128,7 +124,7 @@ export default function AddPatientScreen() {
              onChangeText={setAddress} 
            />
 
-           <View style={{ flexDirection: 'row', gap: 12 }}>
+           <ResponsiveGrid>
               <View style={{ flex: 1 }}>
                  <FloatingInput 
                    label="Referring doctor (optional)" 
@@ -145,22 +141,12 @@ export default function AddPatientScreen() {
                    rightIcon={<Ionicons name="calendar-outline" size={20} color={theme.colors.text.tertiary} />}
                  />
               </View>
-           </View>
+           </ResponsiveGrid>
         </ScrollView>
       </KeyboardAvoidingView>
 
       <View style={[styles.footer, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border, paddingBottom: insets.bottom || 16 }]}>
-         <TouchableOpacity 
-           style={[styles.saveBtn, { backgroundColor: theme.colors.primary }]}
-           disabled={createMutation.isPending || updateMutation.isPending}
-           onPress={handleSave}
-         >
-           {createMutation.isPending || updateMutation.isPending ? (
-             <ActivityIndicator color="#FFF" />
-           ) : (
-             <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Save Patient Info</Text>
-           )}
-         </TouchableOpacity>
+         <Button title="Save patient" onPress={handleSave} isLoading={createMutation.isPending || updateMutation.isPending} />
       </View>
     </View>
   );
@@ -174,5 +160,5 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 20 },
   sectionHeading: { fontSize: 15, marginBottom: 16, marginTop: 12 },
   footer: { padding: 16, borderTopWidth: 0.5 },
-  saveBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
+  saveBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });

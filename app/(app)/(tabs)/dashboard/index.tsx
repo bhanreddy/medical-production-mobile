@@ -1,9 +1,9 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import { useIsFocused } from '@react-navigation/native';
 import { mobileLayout } from '@/theme/mobileLayout';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
-  Text,
   Pressable,
   RefreshControl,
   StyleSheet,

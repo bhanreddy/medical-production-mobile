@@ -1,10 +1,10 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import { DashboardPanel } from '@/components/dashboard/DashboardPanel';
 import { nexsyPalette } from '@/theme/nexsyrus';
 import { mobileLayout } from '@/theme/mobileLayout';
 import React, { useEffect, useState } from 'react';
 import {
   View,
-  Text,
   Pressable,
   StyleSheet,
   useWindowDimensions,

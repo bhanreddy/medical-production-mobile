@@ -1,7 +1,10 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceSearch, WorkspaceChip, WorkspaceIconButton, WorkspaceFab, WorkspaceEmpty } from '@/components/ui/Workspace';
+import { ScrollView as WorkspaceScrollView } from 'react-native';
 import { mobileLayout } from '@/theme/mobileLayout';
-import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { useWindowDimensions, View, Text, StyleSheet, TextInput, ActivityIndicator, Animated } from 'react-native';
+import { LiquidSheen } from '@/components/glass/LiquidGlass';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import { useWindowDimensions, View, StyleSheet, ActivityIndicator, Animated } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -190,57 +193,10 @@ export default function PatientsIndexScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <GlassMeshBackground />
       {/* Header */}
-      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={[styles.title, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Patients</Text>
-            <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
-              {totalCustomers.toLocaleString()} total
-            </Text>
-          </View>
-
-          <TouchableOpacity onPress={() => bottomSheetRef.current?.expand()} style={styles.bellBtn} hitSlop={10}>
-             <Ionicons name="notifications-outline" size={26} color={theme.colors.text.primary} />
-             {reminders && reminders.length > 0 && (
-               <View style={[styles.bellBadge, { backgroundColor: theme.colors.danger }]}>
-                 <Text style={{ color: '#FFF', fontSize: 10, fontWeight: 'bold' }}>{reminders.length}</Text>
-               </View>
-             )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Search */}
-        <View style={[styles.searchBar, { backgroundColor: theme.colors.background }]}>
-          <Ionicons name="search" size={20} color={theme.colors.text.secondary} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.colors.text.primary, fontFamily: theme.typography.family.regular }]}
-            placeholder="Search patients..."
-            placeholderTextColor={theme.colors.text.tertiary}
-            value={search}
-            onChangeText={handleSearch}
-          />
-        </View>
-
-        {/* Filters */}
-        <View style={styles.filterRow}>
-          {FILTERS.map(f => (
-            <TouchableOpacity 
-              key={f} 
-              onPress={() => { Haptics.selectionAsync(); setActiveFilter(f); }}
-              style={[
-                styles.filterChip, 
-                { backgroundColor: activeFilter === f ? theme.colors.primary : theme.colors.background }
-              ]}
-            >
-              <Text style={{ 
-                color: activeFilter === f ? theme.colors.text.inverse : theme.colors.text.secondary,
-                fontFamily: activeFilter === f ? theme.typography.family.semiBold : theme.typography.family.regular,
-                fontSize: 13
-              }}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </LiquidPanel>
+      <WorkspaceHeader title="Patients" icon="people-outline" subtitle={`${totalCustomers.toLocaleString()} patients`} actions={<WorkspaceIconButton icon="notifications-outline" label="Patient reminders" badge={reminders?.length} onPress={() => bottomSheetRef.current?.expand()} />}>
+        <WorkspaceSearch label="Search patients" value={search} onChangeText={handleSearch} />
+        <WorkspaceScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>{FILTERS.map(f => <WorkspaceChip key={f} label={f} selected={activeFilter === f} onPress={() => { Haptics.selectionAsync(); setActiveFilter(f); }} />)}</WorkspaceScrollView>
+      </WorkspaceHeader>
 
       {/* List */}
       <View style={styles.listContainer}>
@@ -260,6 +216,7 @@ export default function PatientsIndexScreen() {
               }
             }}
             onEndReachedThreshold={0.5}
+            ListEmptyComponent={<WorkspaceEmpty title="No patients found" description="Try another search or patient filter." icon="people-outline" />}
             ListFooterComponent={
               isFetchingNextPage ? <ActivityIndicator style={{ margin: 20 }} color={theme.colors.primary} /> : null
             }
@@ -267,12 +224,7 @@ export default function PatientsIndexScreen() {
         )}
       </View>
 
-      <TouchableOpacity 
-        style={[styles.fab, { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: theme.colors.border }]}
-        onPress={() => router.push('/(app)/patients/add')}
-      >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+      <WorkspaceFab label="Add patient" onPress={() => router.push('/(app)/patients/add')} bottom={layout.scrollBottom} />
 
       {/* Reminders Bottom Sheet */}
       <BottomSheet ref={bottomSheetRef} snapPoints={['60%']} title="Due Reminders">
@@ -304,7 +256,7 @@ const styles = StyleSheet.create({
   filterRow: { flexDirection: 'row', gap: 8 },
   filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   listContainer: { flex: 1 },
-  card: { borderWidth: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 14, marginHorizontal: 6, marginBottom: 10 },
+  card: { borderWidth: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 14, marginHorizontal: 6, marginBottom: 10 },
   avatar: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   avatarText: { fontSize: 18 },
   centerCol: { flex: 1 },

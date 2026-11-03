@@ -1,15 +1,10 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceSearch, WorkspaceIconButton, WorkspaceChip } from '@/components/ui/Workspace';
 import { mobileLayout } from '@/theme/mobileLayout';
 import { ProductCard } from '@/components/pos/ProductCard';
-import { LiquidPanel } from '@/components/glass/LiquidGlass';
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  useWindowDimensions,
-  TextInput,
-  ActivityIndicator,
-} from 'react-native';
+
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { View, StyleSheet, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -386,55 +381,15 @@ export default function PosScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <GlassMeshBackground />
       {/* Header */}
-      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-        <View style={styles.headerTopRow}>
-          <Text style={[styles.title, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Point of Sale</Text>
-          <TouchableOpacity onPress={() => cartSheetRef.current?.expand()} style={[styles.cartIconWrapper, layout.wide && { display: 'none' }]}>
-            <Ionicons name="cart-outline" size={28} color={theme.colors.text.primary} />
-            {cartItemCount > 0 && (
-              <View style={[styles.cartBadge, { backgroundColor: theme.colors.danger }]}>
-                <Text style={[styles.cartBadgeText, { color: theme.colors.text.inverse }]}>{cartItemCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.searchContainer, { backgroundColor: theme.colors.background }]}>
-          <Ionicons name="search" size={20} color={theme.colors.text.secondary} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.colors.text.primary, fontFamily: theme.typography.family.regular }]}
-            placeholder="Search medicines, scan barcode..."
-            placeholderTextColor={theme.colors.text.secondary}
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-          />
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Scan medicine barcode" style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }} onPress={() => router.push('/(app)/scanner' as any)}>
-            <Ionicons name="barcode-outline" size={24} color={theme.colors.primary} />
-          </TouchableOpacity>
-        </View>
-      </LiquidPanel>
+      <WorkspaceHeader title="Point of sale" icon="receipt-outline" subtitle="Invoices and payments" actions={!layout.wide ? <WorkspaceIconButton icon="cart-outline" label="Current sale" badge={cartItemCount} onPress={() => cartSheetRef.current?.expand()} /> : undefined}>
+        <WorkspaceSearch label="Search medicines" placeholder="Search medicines or scan a barcode" value={searchQuery} onChangeText={handleSearchChange} trailing={<WorkspaceIconButton icon="barcode-outline" label="Scan medicine barcode" onPress={() => router.push('/(app)/scanner' as any)} />} />
+      </WorkspaceHeader>
 
       {/* Category Chips (Only if not searching) */}
       {!isSearchActive && (
         <View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-            {CATEGORIES.map(cat => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryChip,
-                  { backgroundColor: selectedCategory === cat ? theme.colors.primary : theme.colors.surface }
-                ]}
-                onPress={() => setSelectedCategory(cat)}
-              >
-                <Text style={[
-                  styles.categoryText,
-                  { color: selectedCategory === cat ? theme.colors.text.inverse : theme.colors.text.secondary, fontFamily: theme.typography.family.medium }
-                ]}>
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {CATEGORIES.map(cat => <WorkspaceChip key={cat} label={cat} selected={selectedCategory === cat} onPress={() => setSelectedCategory(cat)} />)}
           </ScrollView>
         </View>
       )}
@@ -520,6 +475,6 @@ const styles = StyleSheet.create({
   paymentPill: { minWidth: 64, flex: 1, minHeight: 44, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
   totalsBox: { marginBottom: 16 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  checkoutBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  checkoutBtnText: { color: '#fff', fontSize: 17 },
+  checkoutBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  checkoutBtnText: { color: '#fff', fontSize: 13 },
 });

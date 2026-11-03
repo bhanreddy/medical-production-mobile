@@ -1,8 +1,10 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceChip } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import { mobileLayout } from '@/theme/mobileLayout';
 import { LiquidPanel, useGlassPreferences } from '@/components/glass/LiquidGlass';
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, LayoutChangeEvent } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
@@ -10,7 +12,7 @@ import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
-import { Canvas, Path, Group, Skia, LinearGradient as SkiaLinearGradient, vec } from '@shopify/react-native-skia';
+import { Canvas, Path, Skia, LinearGradient as SkiaLinearGradient, vec } from '@shopify/react-native-skia';
 import { FlashList } from '@shopify/flash-list';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -474,29 +476,11 @@ export default function ReportsIndexScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <GlassMeshBackground />
-       <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-          <TouchableOpacity 
-            onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
-            style={{ padding: 12, marginLeft: -12, marginRight: 4 }} 
-            hitSlop={15}
-          >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold, flex: 1, minWidth: 0, fontSize: layout.compact ? 20 : 24 }]}>Reports</Text>
-          <View style={[styles.datePill, { backgroundColor: theme.colors.background }]}>
-            <Ionicons name="calendar-outline" size={14} color={theme.colors.text.secondary} />
-            <Text style={{ fontSize: 12, fontFamily: theme.typography.family.medium, color: theme.colors.text.secondary, marginLeft: 6 }}>This Month</Text>
-          </View>
-       </LiquidPanel>
+       <WorkspaceHeader title="Reports" icon="bar-chart-outline" subtitle="This month · sales, stock and tax" onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} />
 
        <View style={[styles.tabBar, { backgroundColor: theme.colors.background }]}>
          <ScrollView horizontal style={{ width: '100%', flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}>
-           {TABS.map((t, i) => (
-             <TouchableOpacity key={t} accessibilityRole="tab" accessibilityState={{ selected: activeTab === i }} onPress={() => { void Haptics.selectionAsync().catch(() => {}); setActiveTab(i); }}
-               style={[styles.tabBtn, { backgroundColor: activeTab === i ? theme.colors.primaryLight : 'transparent', borderColor: activeTab === i ? theme.colors.primary + '30' : theme.colors.border }]}>
-               <Text style={{ color: activeTab === i ? theme.colors.primary : theme.colors.text.secondary, fontFamily: theme.typography.family.semiBold, fontSize: 13 }}>{t}</Text>
-             </TouchableOpacity>
-           ))}
+           {TABS.map((t, i) => <WorkspaceChip key={t} label={t} role="tab" selected={activeTab === i} onPress={() => { void Haptics.selectionAsync().catch(() => {}); setActiveTab(i); }} />)}
          </ScrollView>
        </View>
 
@@ -520,9 +504,9 @@ const styles = StyleSheet.create({
   indicator: { position: 'absolute', bottom: 0, left: 0, height: 3, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
   body: { flex: 1 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  box: { padding: 16, borderRadius: 14 },
-  chartCard: { padding: 16, borderRadius: 14, marginBottom: 16 },
-  rankCirle: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  box: { padding: 16, borderRadius: 16 },
+  chartCard: { padding: 16, borderRadius: 16, marginBottom: 16 },
+  rankCirle: { width: 28, height: 28, borderRadius: 16, borderWidth: 2, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   statBoxLine: { flex: 1, height: 64, borderWidth: 1, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   avatarSm: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   custRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },

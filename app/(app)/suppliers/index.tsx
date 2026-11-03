@@ -1,8 +1,10 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceSearch, WorkspaceFab, WorkspaceEmpty } from '@/components/ui/Workspace';
 import { mobileLayout } from '@/theme/mobileLayout';
 import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
-import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
-import React, { useState, useRef, useMemo } from 'react';
-import { useWindowDimensions, View, Text, StyleSheet, TextInput, ActivityIndicator, Animated } from 'react-native';
+import { LiquidSheen } from '@/components/glass/LiquidGlass';
+import { useState, useRef, useMemo } from 'react';
+import { useWindowDimensions, View, StyleSheet, TextInput, ActivityIndicator, Animated } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
@@ -14,9 +16,9 @@ import Swipeable from 'react-native-gesture-handler/Swipeable';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 
 import { useTheme } from '@/hooks/useTheme';
-import { useCustomersPaginated } from '@/hooks/useCustomers'; // Wait, need useSuppliers
+ // Wait, need useSuppliers
 import { suppliersApi, Supplier } from '@/api/suppliers';
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatCurrency, getInitials } from '@/utils/format';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useUIStore } from '@/stores/uiStore';
@@ -131,28 +133,7 @@ export default function SuppliersIndexScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <GlassMeshBackground />
-      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-            <TouchableOpacity 
-              onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
-              style={{ padding: 12, marginLeft: -12, marginRight: 4 }} 
-              hitSlop={15}
-            >
-             <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-           </TouchableOpacity>
-           <Text style={{ fontSize: 24, fontFamily: theme.typography.family.bold, color: theme.colors.text.primary }}>Suppliers</Text>
-         </View>
-         <View style={[styles.searchBar, { backgroundColor: theme.colors.background }]}>
-           <Ionicons name="search" size={20} color={theme.colors.text.secondary} />
-           <TextInput
-             style={{ flex: 1, marginLeft: 8, fontSize: 16, color: theme.colors.text.primary }}
-             placeholder="Search suppliers..."
-             placeholderTextColor={theme.colors.text.tertiary}
-             value={search}
-             onChangeText={handleSearch}
-           />
-         </View>
-      </LiquidPanel>
+      <WorkspaceHeader title="Suppliers" icon="business-outline" subtitle="Contacts and outstanding balances" onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')}><WorkspaceSearch label="Search suppliers" value={search} onChangeText={handleSearch} /></WorkspaceHeader>
 
       <View style={{ flex: 1 }}>
         {isLoading && !data ? (
@@ -168,18 +149,13 @@ export default function SuppliersIndexScreen() {
             contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 6, paddingBottom: insets.bottom + 88 }}
             onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
             onEndReachedThreshold={0.5}
-            ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.text.tertiary }}>No suppliers found.</Text>}
+            ListEmptyComponent={<WorkspaceEmpty title="No suppliers found" description="Try another search or review your supplier list." icon="business-outline" />}
             ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ margin: 20 }} color={theme.colors.primary} /> : null}
           />
         )}
       </View>
 
-      <TouchableOpacity 
-         style={[styles.fab, { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: theme.colors.border }]}
-         onPress={() => router.push('/(app)/suppliers/add')} // Optional add route fallback
-      >
-         <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+      <WorkspaceFab label="Add supplier" onPress={() => router.push('/(app)/suppliers/add')} bottom={insets.bottom + 20} />
 
       <BottomSheet ref={paymentSheetRef} snapPoints={['45%']} title="Record Payment">
          <View style={{ padding: 24 }}>
@@ -201,7 +177,7 @@ export default function SuppliersIndexScreen() {
               disabled={!paymentAmount || paymentMutation.isPending}
               onPress={submitPayment}
             >
-              {paymentMutation.isPending ? <ActivityIndicator color="#FFF" /> : <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Confirm Payment</Text>}
+              {paymentMutation.isPending ? <ActivityIndicator color={theme.colors.text.inverse} /> : <Text style={{ color: theme.colors.text.inverse, fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Confirm Payment</Text>}
             </TouchableOpacity>
          </View>
       </BottomSheet>
@@ -213,7 +189,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: 16, paddingBottom: 16, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.05)' },
   searchBar: { flexDirection: 'row', alignItems: 'center', height: 48, borderRadius: 12, paddingHorizontal: 12 },
-  card: { borderWidth: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 14, marginHorizontal: 6, marginBottom: 10 },
+  card: { borderWidth: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 14, marginHorizontal: 6, marginBottom: 10 },
   avatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   avatarText: { fontSize: 16 },
   centerCol: { flex: 1 },
@@ -223,5 +199,5 @@ const styles = StyleSheet.create({
   fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
   paymentInputRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingBottom: 8, marginTop: 24, marginBottom: 32 },
   paymentInput: { flex: 1, fontSize: 32, marginLeft: 8, padding: 0 },
-  submitPayBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
+  submitPayBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });

@@ -1,5 +1,6 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import React from 'react';
-import { StyleSheet, ActivityIndicator, Text, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Touchable } from './Touchable';
 import { useTheme } from '@/hooks/useTheme';

@@ -1,8 +1,8 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   TextInput,
-  Text,
   StyleSheet,
   Pressable,
   type TextInputProps,
@@ -68,7 +68,7 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
 
   const animatedLabelStyle = useAnimatedStyle(() => {
     const top = interpolate(labelProgress.value, [0, 1], [18, 6]);
-    const fontSize = interpolate(labelProgress.value, [0, 1], [15, 11]);
+    const fontSize = interpolate(labelProgress.value, [0, 1], [14, 11]);
 
     return {
       top,

@@ -1,8 +1,10 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceIconButton, WorkspaceEmpty } from '@/components/ui/Workspace';
 import { mobileLayout } from '@/theme/mobileLayout';
 import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
-import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
-import React, { useState, useRef, useMemo } from 'react';
-import { useWindowDimensions, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { LiquidSheen } from '@/components/glass/LiquidGlass';
+import { useState, useRef, useMemo } from 'react';
+import { useWindowDimensions, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -131,30 +133,7 @@ export default function SalesHistoryScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <GlassMeshBackground />
-       <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-          <View style={styles.headerTop}>
-              <TouchableOpacity 
-                style={[styles.backBtn, { padding: 12, marginLeft: -12, marginRight: 4 }]} 
-                onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
-                hitSlop={15}
-              >
-               <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-             </TouchableOpacity>
-             <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]} numberOfLines={1}>
-               {medicineName ? `${medicineName} Sales` : 'Sales History'}
-             </Text>
-             <TouchableOpacity onPress={() => filterSheetRef.current?.expand()} style={styles.filterBtn} hitSlop={10}>
-               <Ionicons name="options-outline" size={24} color={theme.colors.primary} />
-             </TouchableOpacity>
-          </View>
-          
-          <TouchableOpacity style={[styles.dateFilterRange, { backgroundColor: theme.colors.background }]} onPress={() => filterSheetRef.current?.expand()}>
-             <Ionicons name="calendar-outline" size={16} color={theme.colors.text.secondary} />
-             <Text style={{ color: theme.colors.text.primary, fontSize: 13, marginLeft: 8 }}>
-               {fromDate && toDate ? `${formatDate(fromDate)} – ${formatDate(toDate)}` : 'All Time'}
-             </Text>
-          </TouchableOpacity>
-       </LiquidPanel>
+       <WorkspaceHeader title={medicineName ? `${medicineName} sales` : "Sales history"} icon="receipt-outline" subtitle="Invoices and payment status" onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} actions={<WorkspaceIconButton icon="options-outline" label="Filter sales" onPress={() => filterSheetRef.current?.expand()} />}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Choose sales period" style={[styles.dateFilterRange, { backgroundColor: theme.colors.primaryLight }]} onPress={() => filterSheetRef.current?.expand()}><Ionicons name="calendar-outline" size={16} color={theme.colors.primary} /><Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginLeft: 8 }}>{fromDate && toDate ? `${formatDate(fromDate)} – ${formatDate(toDate)}` : "All time"}</Text></TouchableOpacity></WorkspaceHeader>
 
        <View style={styles.listContainer}>
           {isLoading && !data ? (
@@ -173,11 +152,7 @@ export default function SalesHistoryScreen() {
                 }
               }}
               onEndReachedThreshold={0.5}
-              ListEmptyComponent={
-                <Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.text.tertiary }}>
-                  {medicineName ? `No sales recorded for ${medicineName}.` : 'No sales found matching criteria.'}
-                </Text>
-              }
+              ListEmptyComponent={<WorkspaceEmpty title="No sales found" description="Try another period or payment filter." icon="receipt-outline" />}
               ListFooterComponent={
                 isFetchingNextPage ? <ActivityIndicator style={{ margin: 20 }} color={theme.colors.primary} /> : null
               }
@@ -198,7 +173,7 @@ export default function SalesHistoryScreen() {
                     }]} 
                     onPress={() => { Haptics.selectionAsync(); setPaymentStatus(status); }}
                   >
-                    <Text style={{ color: paymentStatus === status ? '#FFF' : theme.colors.text.secondary, fontFamily: paymentStatus === status ? theme.typography.family.semiBold : theme.typography.family.regular }}>{status}</Text>
+                    <Text style={{ color: paymentStatus === status ? theme.colors.text.inverse : theme.colors.text.secondary, fontFamily: paymentStatus === status ? theme.typography.family.semiBold : theme.typography.family.regular }}>{status}</Text>
                   </TouchableOpacity>
                 ))}
              </View>
@@ -219,7 +194,7 @@ export default function SalesHistoryScreen() {
                   <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }}>Clear</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.colors.primary, flex: 2 }]} onPress={handleApplyFilter}>
-                  <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold }}>Apply Filters</Text>
+                  <Text style={{ color: theme.colors.text.inverse, fontFamily: theme.typography.family.semiBold }}>Apply Filters</Text>
                 </TouchableOpacity>
              </View>
           </View>
@@ -237,7 +212,7 @@ const styles = StyleSheet.create({
   filterBtn: { padding: 4 },
   dateFilterRange: { flexDirection: 'row', alignItems: 'center', height: 36, borderRadius: 8, paddingHorizontal: 12, alignSelf: 'flex-start' },
   listContainer: { flex: 1 },
-  card: { borderWidth: 1, flexDirection: 'row', borderRadius: 12, marginHorizontal: 6, marginBottom: 10, overflow: 'hidden' },
+  card: { borderWidth: 1, flexDirection: 'row', borderRadius: 16, marginHorizontal: 6, marginBottom: 10, overflow: 'hidden' },
   accentBar: { width: 4 },
   cardContent: { flex: 1, padding: 16 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

@@ -1,6 +1,7 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import { useGlassPreferences } from '@/components/glass/LiquidGlass';
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View, Pressable, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, Pressable, useWindowDimensions } from 'react-native';
 import Animated, { FadeOutUp, SlideInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';

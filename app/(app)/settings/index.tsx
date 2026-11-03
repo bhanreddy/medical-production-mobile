@@ -1,8 +1,10 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
 import { LiquidPanel } from '@/components/glass/LiquidGlass';
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, Linking, Pressable, Switch, useWindowDimensions } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, StyleSheet, Alert, ActivityIndicator, Pressable, Switch, useWindowDimensions } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -98,16 +100,7 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <GlassMeshBackground />
-      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-         <TouchableOpacity 
-           onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
-           style={{ padding: 12, marginLeft: -12, marginRight: 4 }} 
-           hitSlop={15}
-         >
-           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-         </TouchableOpacity>
-         <Text style={{ fontSize: 24, fontFamily: theme.typography.family.bold, color: theme.colors.text.primary }}>Settings</Text>
-      </LiquidPanel>
+      <WorkspaceHeader title="Settings" icon="settings-outline" subtitle="Your pharmacy and preferences" onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} />
 
       <ScrollView contentContainerStyle={{ padding: layout.gutter, paddingBottom: insets.bottom + 32, width: '100%', maxWidth: 1240, alignSelf: 'center' }} showsVerticalScrollIndicator={false}>
 

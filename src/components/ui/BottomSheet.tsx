@@ -1,5 +1,6 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import GorhomBottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import { LiquidPanel, useGlassPreferences } from '@/components/glass/LiquidGlass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

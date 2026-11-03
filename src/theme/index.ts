@@ -43,7 +43,7 @@ const lightColors: ThemeColors = {
   text: {
     primary: '#182338',
     secondary: '#657087',
-    tertiary: '#94A3B8',
+    tertiary: '#68758B',
     inverse: '#FFFFFF',
   },
 };
@@ -65,7 +65,7 @@ const darkColors: ThemeColors = {
   text: {
     primary: '#F2F5FC',
     secondary: '#A9B5C9',
-    tertiary: '#64748B',
+    tertiary: '#8794AC',
     inverse: '#121B2C',
   },
 };
@@ -107,10 +107,10 @@ const spacing = {
 /* ─── Border Radius ─────────────────────────────────── */
 
 const radius = {
-  input: 8,
-  card: 14,
+  input: 12,
+  card: 16,
   modal: 16,
-  pill: 8,
+  pill: 12,
 } as const;
 
 /* ─── Shadows ───────────────────────────────────────── */

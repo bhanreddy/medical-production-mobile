@@ -1,11 +1,13 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceIconButton, WorkspaceCard } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+
+import { View, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
+
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -95,27 +97,13 @@ export default function InventoryDetailScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, paddingTop: insets.top + 16, borderBottomColor: theme.colors.border }]}>
-         <TouchableOpacity 
-           onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/inventory')} 
-           style={[styles.backBtn, { padding: 12, marginLeft: -12, marginRight: 4 }]} 
-           hitSlop={15}
-         >
-           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-         </TouchableOpacity>
-         <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]} numberOfLines={1}>
-           {medicine.name}
-         </Text>
-         <TouchableOpacity onPress={handleEdit} style={styles.editBtn} hitSlop={10}>
-           <Ionicons name="pencil" size={20} color={theme.colors.primary} />
-         </TouchableOpacity>
-      </View>
+      <WorkspaceHeader title={medicine.name} subtitle="Medicine and batch details" safeArea onBack={() => router.canGoBack() ? router.back() : router.navigate("/(app)/(tabs)/inventory")} actions={<WorkspaceIconButton icon="create-outline" label="Edit medicine" onPress={handleEdit} />} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
          <ResponsiveGrid>
          <View>
          {/* Medicine Info Card */}
-         <View style={[styles.infoCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
+         <WorkspaceCard style={[styles.infoCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
             {medicine.schedule === 'H1' && (
               <View style={[styles.h1Badge, { backgroundColor: theme.colors.danger }]}>
                 <Text style={styles.h1Text}>Schedule H1</Text>
@@ -138,7 +126,7 @@ export default function InventoryDetailScreen() {
                  <Text style={[styles.infoValue, { color: theme.colors.text.primary }]}>{medicine.gstRate}%</Text>
                </View>
             </View>
-         </View>
+         </WorkspaceCard>
 
          {/* Stock Overview */}
          <View style={styles.stockOverview}>

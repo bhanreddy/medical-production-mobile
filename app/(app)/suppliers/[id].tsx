@@ -1,6 +1,9 @@
+import { Button } from '@/components/ui/Button';
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceCard } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRef, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +12,7 @@ import * as Haptics from 'expo-haptics';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 
 import { useTheme } from '@/hooks/useTheme';
-import { suppliersApi, Supplier } from '@/api/suppliers';
+import { suppliersApi } from '@/api/suppliers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -68,23 +71,13 @@ export default function SupplierDetailScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-         <View style={[styles.headerLite, { backgroundColor: theme.colors.surface }]}>
-           <TouchableOpacity 
-             onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/suppliers')} 
-             style={{ padding: 12, marginLeft: -12, marginRight: 4 }}
-             hitSlop={15}
-           >
-             <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-           </TouchableOpacity>
-           <Text style={{ fontFamily: theme.typography.family.semiBold, fontSize: 18, color: theme.colors.text.primary }}>Supplier Profile</Text>
-           <View style={{ width: 40 }} />
-         </View>
+         <WorkspaceHeader title="Supplier profile" subtitle="Contact details and balances" onBack={() => router.canGoBack() ? router.back() : router.navigate("/(app)/suppliers")} />
 
          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
             <ResponsiveGrid>
             <View>
             {/* Header Box */}
-            <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, alignItems: 'center' }]}>
+            <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, alignItems: 'center' }]}>
                <View style={[styles.avatarLg, { backgroundColor: theme.colors.accentLight }]}>
                  <Text style={{ color: theme.colors.accent, fontFamily: theme.typography.family.bold, fontSize: 32 }}>{getInitials(supplier.name)}</Text>
                </View>
@@ -105,19 +98,19 @@ export default function SupplierDetailScreen() {
                      <Text style={{ fontFamily: theme.typography.family.medium, marginTop: 4, color: theme.colors.text.primary, fontSize: 11 }} numberOfLines={1}>{supplier.email || 'N/A'}</Text>
                   </View>
                </View>
-            </View>
+            </WorkspaceCard>
 
             {/* Address */}
             <Text style={styles.sectionTitle}>Business Address</Text>
-            <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, paddingVertical: 12 }]}>
+            <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, paddingVertical: 12 }]}>
                <Text style={{ color: theme.colors.text.primary, lineHeight: 22 }}>{supplier.address || 'No address provided.'}</Text>
-            </View>
+            </WorkspaceCard>
 
             {/* Outstanding Balance */}
             </View>
             <View>
             <Text style={styles.sectionTitle}>Outstanding Ledger</Text>
-            <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, padding: 20 }]}>
+            <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, padding: 20 }]}>
                <View style={styles.rowBetween}>
                   <Text style={{ color: theme.colors.text.secondary, fontSize: 15 }}>Total Payable Balance</Text>
                   <Text style={{ 
@@ -128,19 +121,13 @@ export default function SupplierDetailScreen() {
                   </Text>
                </View>
                {supplier.outstandingBalance > 0 && (
-                 <TouchableOpacity 
-                    style={[styles.payBtn, { backgroundColor: theme.colors.danger }]} 
-                    onPress={() => paymentSheetRef.current?.expand()}
-                 >
-                    <Ionicons name="card-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
-                    <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold }}>Clear Outstanding</Text>
-                 </TouchableOpacity>
+                 <Button title="Record payment" variant="danger" onPress={() => paymentSheetRef.current?.expand()} style={{ marginTop: 14 }} />
                )}
-            </View>
+            </WorkspaceCard>
 
             {/* Recent Purchases */}
             <Text style={styles.sectionTitle}>Unpaid Bills</Text>
-            <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, paddingVertical: 8 }]}>
+            <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, paddingVertical: 8 }]}>
                {outstanding?.bills && outstanding.bills.length > 0 ? (
                   outstanding.bills.map((bill, index) => (
                     <View key={bill.purchaseId} style={[styles.billRow, index !== outstanding.bills.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.colors.border }]}>
@@ -154,7 +141,7 @@ export default function SupplierDetailScreen() {
                ) : (
                  <Text style={{ color: theme.colors.text.tertiary, padding: 8, textAlign: 'center' }}>No outstanding bills.</Text>
                )}
-            </View>
+            </WorkspaceCard>
             </View>
             </ResponsiveGrid>
          </ScrollView>
@@ -179,7 +166,7 @@ export default function SupplierDetailScreen() {
                 disabled={!paymentAmount || paymentMutation.isPending}
                 onPress={submitPayment}
               >
-                {paymentMutation.isPending ? <ActivityIndicator color="#FFF" /> : <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Confirm Settlement</Text>}
+                {paymentMutation.isPending ? <ActivityIndicator color={theme.colors.text.inverse} /> : <Text style={{ color: theme.colors.text.inverse, fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Confirm Settlement</Text>}
               </TouchableOpacity>
            </View>
          </BottomSheet>
@@ -201,5 +188,5 @@ const styles = StyleSheet.create({
   billRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 8 },
   paymentInputRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingBottom: 8, marginTop: 24, marginBottom: 32 },
   paymentInput: { flex: 1, fontSize: 32, marginLeft: 8, padding: 0 },
-  submitPayBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
+  submitPayBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });

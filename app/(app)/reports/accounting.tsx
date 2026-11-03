@@ -1,6 +1,8 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceIconButton, WorkspaceCard } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
-import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { useState, useRef, useMemo } from 'react';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -248,19 +250,7 @@ Generated automatically by M-POS`;
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
        {/* Modern Header */}
-       <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-          <TouchableOpacity 
-            onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
-            hitSlop={15} 
-            style={styles.headerBtn}
-          >
-            <Ionicons name="close" size={24} color={theme.colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { fontFamily: theme.typography.family.semiBold, color: theme.colors.text.primary }]}>Accounting Summary</Text>
-          <TouchableOpacity onPress={exportSummaries} hitSlop={10} style={styles.headerBtn}>
-             <Ionicons name="share-outline" size={22} color={theme.colors.primary} />
-          </TouchableOpacity>
-       </View>
+       <WorkspaceHeader title="Accounting" subtitle="Profit, expenses and balances" onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} actions={<WorkspaceIconButton icon="share-outline" label="Export accounting summary" onPress={exportSummaries} />} />
 
        {/* Date Filter Range Banner — Capsule Badge Style */}
        <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
@@ -296,7 +286,7 @@ Generated automatically by M-POS`;
 
        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
           {/* Net Profit / Loss Hero Card */}
-          <View style={[styles.heroCard, { backgroundColor: isPositiveProfit ? '#267552' : '#B63D60' }]}>
+          <View style={[styles.heroCard, { backgroundColor: '#2457E6' }]}>
              <View style={styles.heroHeader}>
                 <View>
                    <Text style={styles.heroSubtitle}>NET PROFIT / LOSS</Text>
@@ -329,7 +319,7 @@ Generated automatically by M-POS`;
           <View>
           {/* Income Statement Detailed Breakdown */}
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Profit & Loss Statement</Text>
-          <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }]}>
+          <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }]}>
              
              {/* Revenue group */}
              <Text style={[styles.groupHeader, { color: theme.colors.primary }]}>REVENUE</Text>
@@ -404,13 +394,13 @@ Generated automatically by M-POS`;
                 </View>
                 <Text style={{ color: theme.colors.danger, fontFamily: theme.typography.family.semiBold }}>{formatCurrency(summary.totalExpenses)}</Text>
              </View>
-          </View>
+          </WorkspaceCard>
 
           </View>
           <View>
           {/* Balance Position */}
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Balance Positions</Text>
-          <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, paddingVertical: 4, paddingHorizontal: 0 }]}>
+          <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, paddingVertical: 4, paddingHorizontal: 0 }]}>
              <TouchableOpacity 
                 style={[styles.balanceItem, { borderBottomWidth: 1, borderBottomColor: theme.colors.border }]}
                 onPress={() => router.push('/(app)/(tabs)/patients')}
@@ -462,7 +452,7 @@ Generated automatically by M-POS`;
                 </View>
                 <Text style={{ fontFamily: theme.typography.family.bold, color: theme.colors.primary, fontSize: 16 }}>{formatCurrency(summary.cashInHand)}</Text>
              </View>
-          </View>
+          </WorkspaceCard>
           </View>
           </ResponsiveGrid>
        </ScrollView>
@@ -493,11 +483,11 @@ Generated automatically by M-POS`;
                         <Ionicons 
                           name={PRESET_ICONS[preset.id]} 
                           size={16} 
-                          color={tempPreset === preset.id ? '#FFF' : theme.colors.text.secondary} 
+                          color={tempPreset === preset.id ? theme.colors.text.inverse : theme.colors.text.secondary}
                         />
                         <Text 
                           style={{ 
-                            color: tempPreset === preset.id ? '#FFF' : theme.colors.text.secondary, 
+                            color: tempPreset === preset.id ? theme.colors.text.inverse : theme.colors.text.secondary,
                             fontFamily: tempPreset === preset.id ? theme.typography.family.semiBold : theme.typography.family.regular,
                             fontSize: 13
                           }}

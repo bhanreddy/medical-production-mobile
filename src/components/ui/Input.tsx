@@ -1,5 +1,6 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, TextInputProps } from 'react-native';
+import { View, TextInput, StyleSheet, TextInputProps } from 'react-native';
 import { LiquidPanel } from '@/components/glass/LiquidGlass';
 import { useTheme } from '@/hooks/useTheme';
 

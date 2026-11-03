@@ -1,6 +1,9 @@
+import { Button } from '@/components/ui/Button';
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceChip } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity,ActivityIndicator, Switch } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, ActivityIndicator, Switch } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -120,14 +123,7 @@ export default function AddMedicineScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-        <TouchableOpacity onPress={goBack} style={[styles.backBtn, { padding: 12, marginLeft: -12, marginRight: 4 }]} hitSlop={15}>
-           <Ionicons name="close" size={24} color={theme.colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>
-          {isEditing ? 'Edit Medicine' : 'Add New Medicine'}
-        </Text>
-      </View>
+      <WorkspaceHeader title={isEditing ? "Edit medicine" : "Add medicine"} subtitle="Medicine details and stock rules" close onBack={goBack} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -164,11 +160,7 @@ export default function AddMedicineScreen() {
            {/* Category Options */}
            <Text style={[styles.sectionHeading, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>Category</Text>
            <View style={styles.pillBox}>
-              {CATEGORIES.map(cat => (
-                <TouchableOpacity key={cat} style={[styles.pill, { backgroundColor: category === cat ? theme.colors.primary : theme.colors.surface }]} onPress={() => { Haptics.selectionAsync(); setCategory(cat); }}>
-                  <Text style={{ color: category === cat ? '#FFF' : theme.colors.text.secondary, fontFamily: category === cat ? theme.typography.family.semiBold : theme.typography.family.regular }}>{cat}</Text>
-                </TouchableOpacity>
-              ))}
+              {CATEGORIES.map(cat => <WorkspaceChip key={cat} label={cat} selected={category === cat} onPress={() => { Haptics.selectionAsync(); setCategory(cat); }} />)}
            </View>
 
            </View>
@@ -176,11 +168,7 @@ export default function AddMedicineScreen() {
            {/* GST Options */}
            <Text style={[styles.sectionHeading, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>GST Rate</Text>
            <View style={styles.pillBox}>
-              {GST_RATES.map(rate => (
-                <TouchableOpacity key={`gst-${rate}`} style={[styles.pill, { backgroundColor: gstRate === rate ? theme.colors.primary : theme.colors.surface }]} onPress={() => { Haptics.selectionAsync(); setGstRate(rate); }}>
-                  <Text style={{ color: gstRate === rate ? '#FFF' : theme.colors.text.secondary, fontFamily: gstRate === rate ? theme.typography.family.semiBold : theme.typography.family.regular }}>{rate}%</Text>
-                </TouchableOpacity>
-              ))}
+              {GST_RATES.map(rate => <WorkspaceChip key={rate} label={`${rate}%`} selected={gstRate === rate} onPress={() => { Haptics.selectionAsync(); setGstRate(rate); }} />)}
            </View>
 
            </View>
@@ -222,17 +210,7 @@ export default function AddMedicineScreen() {
       </KeyboardAvoidingView>
 
       <View style={[styles.footer, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border, paddingBottom: insets.bottom || 16 }]}>
-         <TouchableOpacity 
-           style={[styles.saveBtn, { backgroundColor: theme.colors.primary }]}
-           disabled={createMutation.isPending || updateMutation.isPending}
-           onPress={handleSave}
-         >
-           {createMutation.isPending || updateMutation.isPending ? (
-             <ActivityIndicator color="#FFF" />
-           ) : (
-             <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Save Medicine</Text>
-           )}
-         </TouchableOpacity>
+         <Button title="Save medicine" onPress={handleSave} isLoading={createMutation.isPending || updateMutation.isPending} />
       </View>
     </View>
   );
@@ -251,8 +229,8 @@ const styles = StyleSheet.create({
   pill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   reorderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderWidth: 1, borderRadius: 12, marginTop: 16 },
   stepper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: 4, paddingVertical: 4 },
-  stepBtn: { padding: 6 },
+  stepBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   h1Row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderWidth: 1, borderRadius: 12, marginTop: 16 },
   footer: { padding: 16, borderTopWidth: 0.5 },
-  saveBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
+  saveBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });

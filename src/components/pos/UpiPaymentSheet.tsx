@@ -1,10 +1,10 @@
+import { AppText as Text } from '@/components/ui/AppText';
 import { LiquidPanel, useGlassPreferences } from '@/components/glass/LiquidGlass';
 import { mobileLayout } from '@/theme/mobileLayout';
 import React from 'react';
 import {
   Modal,
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,

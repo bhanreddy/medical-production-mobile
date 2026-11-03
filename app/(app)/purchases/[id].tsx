@@ -1,10 +1,13 @@
+import { Button } from '@/components/ui/Button';
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceCard } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TextInput } from 'react-native';
+import { useRef, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator, TextInput } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
+
 import * as Haptics from 'expo-haptics';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 
@@ -111,23 +114,13 @@ export default function PurchaseDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-       <View style={[styles.headerLite, { paddingTop: insets.top + 8, backgroundColor: theme.colors.surface }]}>
-         <TouchableOpacity 
-           onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/purchases')} 
-           style={{ padding: 12, marginLeft: -12, marginRight: 4 }}
-           hitSlop={15}
-         >
-           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-         </TouchableOpacity>
-         <Text style={{ fontFamily: theme.typography.family.semiBold, fontSize: 18, color: theme.colors.text.primary }}>Purchase Details</Text>
-         <View style={{ width: 40 }} />
-       </View>
+       <WorkspaceHeader title="Purchase details" subtitle="Invoice and payment ledger" safeArea onBack={() => router.canGoBack() ? router.back() : router.navigate("/(app)/purchases")} />
 
        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
           <ResponsiveGrid>
           <View>
           {/* Header Card */}
-          <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
+          <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
              <View style={styles.rowBetween}>
                <View>
                  <Text style={{ fontFamily: theme.typography.family.semiBold, fontSize: 13, color: theme.colors.text.secondary }}>
@@ -148,11 +141,11 @@ export default function PurchaseDetailScreen() {
                  <Text style={{ color: theme.colors.text.secondary, fontSize: 13 }}>Bill No: <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }}>{billNo}</Text></Text>
                  <Text style={{ color: theme.colors.text.secondary, fontSize: 13 }}>{created ? formatDate(created) : ''}</Text>
              </View>
-          </View>
+          </WorkspaceCard>
 
           {/* Line Items */}
           <Text style={styles.sectionTitle}>Line Items</Text>
-          <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, paddingVertical: 8 }]}>
+          <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, paddingVertical: 8 }]}>
              {lineItems.map((item, idx) => (
                 <View key={`item-${idx}`} style={[styles.itemRow, idx !== lineItems.length - 1 && styles.borderBottom]}>
                    <View style={styles.rowBetween}>
@@ -172,12 +165,12 @@ export default function PurchaseDetailScreen() {
                    </View>
                 </View>
              ))}
-          </View>
+          </WorkspaceCard>
 
           </View>
           <View>
           {/* Totals */}
-          <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
+          <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
              <View style={styles.totalRow}>
                 <Text style={{ color: theme.colors.text.secondary }}>Subtotal</Text>
                 <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.medium }}>{formatCurrency(Number(purchase.subtotal ?? 0))}</Text>
@@ -191,11 +184,11 @@ export default function PurchaseDetailScreen() {
                 <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.bold, fontSize: 16 }}>Net Payable</Text>
                 <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.family.bold, fontSize: 20 }}>{formatCurrency(netPayable)}</Text>
              </View>
-          </View>
+          </WorkspaceCard>
 
           {/* Payment Card */}
           <Text style={styles.sectionTitle}>Payment Ledger</Text>
-          <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, borderColor: outstanding > 0 ? theme.colors.danger : theme.colors.border, borderWidth: outstanding > 0 ? 1 : 0 }]}>
+          <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, borderColor: outstanding > 0 ? theme.colors.danger : theme.colors.border, borderWidth: outstanding > 0 ? 1 : 0 }]}>
              <View style={styles.rowBetween}>
                 <Text style={{ color: theme.colors.text.secondary }}>Total Paid</Text>
                 <Text style={{ color: theme.colors.success, fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>{formatCurrency(prevPaid)}</Text>
@@ -209,15 +202,10 @@ export default function PurchaseDetailScreen() {
                     <Text style={{ color: theme.colors.danger, fontFamily: theme.typography.family.bold, fontSize: 16 }}>{formatCurrency(outstanding)}</Text>
                  </View>
                  
-                 <TouchableOpacity 
-                   style={[styles.payBtn, { backgroundColor: theme.colors.danger }]}
-                   onPress={() => paymentSheetRef.current?.expand()}
-                 >
-                    <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold }}>Update Payment Tracker</Text>
-                 </TouchableOpacity>
+                 <Button title="Update payment" variant="danger" onPress={() => paymentSheetRef.current?.expand()} style={{ marginTop: 14 }} />
                </>
              )}
-          </View>
+          </WorkspaceCard>
 
           </View>
           </ResponsiveGrid>
@@ -245,7 +233,7 @@ export default function PurchaseDetailScreen() {
              disabled={!paymentAmount.trim() || updatePayment.isPending}
              onPress={submitPaymentUpdate}
            >
-             {updatePayment.isPending ? <ActivityIndicator color="#FFF" /> : <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Log Payment</Text>}
+             {updatePayment.isPending ? <ActivityIndicator color={theme.colors.text.inverse} /> : <Text style={{ color: theme.colors.text.inverse, fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Log Payment</Text>}
            </TouchableOpacity>
         </View>
        </BottomSheet>
@@ -268,5 +256,5 @@ const styles = StyleSheet.create({
   payBtn: { height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 16 },
   paymentInputRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingBottom: 8 },
   paymentInput: { flex: 1, fontSize: 32, marginLeft: 8, padding: 0 },
-  submitPayBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
+  submitPayBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });

@@ -1,7 +1,9 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceCard, WorkspaceFab, WorkspaceEmpty } from '@/components/ui/Workspace';
 import { mobileLayout } from '@/theme/mobileLayout';
-import React, { useRef, useState } from 'react';
-import { useWindowDimensions, View, Text, StyleSheet, ActivityIndicator, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
+import { useRef, useState } from 'react';
+import { useWindowDimensions, View, StyleSheet, ActivityIndicator, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -118,7 +120,7 @@ export default function ShortbookIndexScreen() {
 
   const renderItem = ({ item }: { item: ShortbookItem }) => (
     <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item.id)} friction={2}>
-      <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
+      <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
         <View style={{ flex: 1, paddingRight: 16 }}>
            <Text style={{ fontFamily: theme.typography.family.semiBold, fontSize: 16, color: theme.colors.text.primary, marginBottom: 2 }}>{item.medicineName}</Text>
            <Text style={{ fontSize: 13, color: theme.colors.text.secondary }}>{item.genericName}</Text>
@@ -146,29 +148,14 @@ export default function ShortbookIndexScreen() {
             <Text style={{ color: theme.colors.primary, fontSize: 12, fontFamily: theme.typography.family.semiBold }}>Mark Ordered</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </WorkspaceCard>
     </Swipeable>
   );
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-        <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-           <TouchableOpacity 
-             onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
-             style={{ padding: 12, marginLeft: -12, marginRight: 4 }} 
-             hitSlop={15}
-           >
-             <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
-           </TouchableOpacity>
-           <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 28, fontFamily: theme.typography.family.bold, color: theme.colors.text.primary }}>Shortbook</Text>
-                {shortbook && <View style={[styles.countBadge, { backgroundColor: theme.colors.primary }]}><Text style={{ color: '#FFF', fontSize: 12, fontFamily: theme.typography.family.bold }}>{shortbook.length}</Text></View>}
-              </View>
-              <Text style={{ fontSize: 13, color: theme.colors.text.secondary }}>Medicines pending order</Text>
-           </View>
-        </View>
+        <WorkspaceHeader title="Shortbook" subtitle={`${shortbook?.length ?? 0} medicines pending order`} onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} />
 
         <View style={{ flex: 1 }}>
           {isLoading ? (
@@ -182,25 +169,12 @@ export default function ShortbookIndexScreen() {
               estimatedItemSize={90}
               contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 6, paddingBottom: insets.bottom + 88 }}
               renderItem={renderItem}
-              ListEmptyComponent={
-                <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: '20%', paddingHorizontal: 32 }}>
-                   <View style={[styles.emptyCircle, { backgroundColor: theme.colors.primaryLight }]}>
-                     <Ionicons name="clipboard-outline" size={48} color={theme.colors.primary} />
-                   </View>
-                   <Text style={{ fontFamily: theme.typography.family.bold, fontSize: 20, color: theme.colors.text.primary, marginTop: 24 }}>All stocked up!</Text>
-                   <Text style={{ color: theme.colors.text.secondary, textAlign: 'center', marginTop: 8, lineHeight: 20 }}>No items in shortbook. Add from inventory when stock runs low directly.</Text>
-                </View>
-              }
+              ListEmptyComponent={<WorkspaceEmpty title="Shortbook is clear" description="Add medicines from inventory when stock runs low." icon="clipboard-outline" />}
             />
           )}
         </View>
 
-        <TouchableOpacity 
-           style={[styles.fab, { backgroundColor: theme.colors.primary, ...theme.shadow.card }]}
-           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); sheetRef.current?.expand(); }}
-        >
-           <Ionicons name="add" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
+        <WorkspaceFab label="Add to shortbook" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); sheetRef.current?.expand(); }} bottom={insets.bottom + 20} />
 
         <BottomSheet ref={sheetRef} snapPoints={['40%']} title="Add to Shortbook">
            <View style={{ padding: 24 }}>
@@ -225,7 +199,7 @@ export default function ShortbookIndexScreen() {
                 disabled={!medName.trim() || addMutation.isPending}
                 onPress={submitAdd}
               >
-                {addMutation.isPending ? <ActivityIndicator color="#FFF" /> : <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Queue Order</Text>}
+                {addMutation.isPending ? <ActivityIndicator color={theme.colors.text.inverse} /> : <Text style={{ color: theme.colors.text.inverse, fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Queue Order</Text>}
               </TouchableOpacity>
            </View>
         </BottomSheet>
@@ -238,7 +212,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 16, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.05)' },
   countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 8 },
-  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 14, marginHorizontal: 6, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 14, marginHorizontal: 6, marginBottom: 10 },
   stockBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   orderedBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   markBtn: { height: 32, width: 95, borderRadius: 16, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
@@ -246,5 +220,5 @@ const styles = StyleSheet.create({
   emptyCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center' },
   fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
   input: { height: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, fontSize: 16 },
-  submitBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
+  submitBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });

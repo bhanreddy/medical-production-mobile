@@ -1,6 +1,8 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceSearch, WorkspaceChip, WorkspaceFab } from '@/components/ui/Workspace';
 import { mobileLayout } from '@/theme/mobileLayout';
 import { useGlassPreferences } from '@/components/glass/LiquidGlass';
-import { LiquidPanel } from '@/components/glass/LiquidGlass';
+
 import { theme as lightTheme, darkTheme } from '@/theme';
 import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
 /*
@@ -13,38 +15,27 @@ import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
  * CHANGED:   Full visual layer — tokens, StyleSheet, layout structure.
  */
 
-import React, { useState, useMemo, useRef } from 'react';
-import {
-  useWindowDimensions,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Platform,
-  ScrollView,
-  type ViewStyle,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+/*
+ * Inventory Screen — Clean Light Design System
+ * ─────────────────────────────────────────────
+ * Matches POS / Home page aesthetic: white surfaces, crisp blue accent,
+ * subtle shadows, iOS-native feel — zero glassmorphism.
+ *
+ * PRESERVED: All business logic, hooks, navigation, FlashList, haptics.
+ * CHANGED:   Full visual layer — tokens, StyleSheet, layout structure.
+ */
+import { useState, useMemo } from 'react';
+import { useWindowDimensions, View, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, ScrollView, type ViewStyle } from 'react-native';
+
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, {
-  useAnimatedStyle,
-  withTiming,
-  useSharedValue,
-  FadeIn,
-} from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '@/hooks/useTheme';
-import {
-  useMedicines,
-  useStockSummary,
-  useAddToShortbook,
-} from '@/hooks/useInventory';
+import { useMedicines, useStockSummary, useAddToShortbook } from '@/hooks/useInventory';
 import { formatCurrency, formatDate } from '@/utils/format';
 import type { Medicine, MedicineBatch } from '@/api/inventory';
 
@@ -677,42 +668,23 @@ export default function InventoryIndexScreen() {
     return batches;
   }, [medicinesData, search]);
 
-  const indicatorPosition = useSharedValue(0);
-
-  const handleTabPress = (index: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveTab(index);
-    indicatorPosition.value = reduceMotion ? index : withTiming(index, { duration: 180 });
-    if (index === 0) {
-      setSelectedChip('all');
-    } else if (index === 1) {
-      setSelectedChip('low_stock');
-    } else if (index === 2) {
-      setSelectedChip('expiring');
-    }
-  };
-
   const handleChipPress = (chip: 'all' | 'low_stock' | 'expiring' | 'schedule_h1') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedChip(chip);
     if (chip === 'all') {
       setActiveTab(0);
-      indicatorPosition.value = reduceMotion ? 0 : withTiming(0, { duration: 180 });
+
     } else if (chip === 'low_stock') {
       setActiveTab(1);
-      indicatorPosition.value = reduceMotion ? 1 : withTiming(1, { duration: 180 });
+
     } else if (chip === 'expiring') {
       setActiveTab(2);
-      indicatorPosition.value = reduceMotion ? 2 : withTiming(2, { duration: 180 });
+
     } else if (chip === 'schedule_h1') {
       setActiveTab(0);
-      indicatorPosition.value = reduceMotion ? 0 : withTiming(0, { duration: 180 });
+
     }
   };
-
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: indicatorPosition.value * 100 + '%' as any }],
-  }));
 
   const handleMedicinePress = (id: string) => {
     router.push(`/(app)/inventory/${id}`);
@@ -907,126 +879,16 @@ export default function InventoryIndexScreen() {
   return (
     <View style={styles.root}>
       <GlassMeshBackground />
-      <StatusBar style="dark" />
+
 
       {/* ── Header ── */}
-      <LiquidPanel dark={isDark} variant="header" style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <View style={styles.headerTitleGroup}>
-              <View style={styles.headerAccentDot} />
-              <Text style={styles.headerTitle}>Inventory</Text>
-            </View>
-            <Text style={styles.headerSubtitle}>Browse stock, batches, and schedules</Text>
-          </View>
-        </View>
-
-        {/* Search */}
-        <View style={styles.searchWrap}>
-          <Ionicons name="search-outline" size={18} color={LIGHT.textMuted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search medicines..."
-            placeholderTextColor={LIGHT.textMuted}
-            value={search}
-            onChangeText={handleSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearch(''); }}>
-              <Ionicons name="close-circle" size={18} color={LIGHT.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Filter chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          <TouchableOpacity
-            style={[styles.filterChip, selectedChip === 'all' && styles.filterChipActive]}
-            onPress={() => handleChipPress('all')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterChipText, selectedChip === 'all' && styles.filterChipTextAccent]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.filterChip,
-              styles.filterChipDanger,
-              selectedChip === 'low_stock' && styles.filterChipActive
-            ]}
-            onPress={() => handleChipPress('low_stock')}
-            activeOpacity={0.8}
-          >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: LIGHT.danger }} />
-            <Text style={[styles.filterChipText, styles.filterChipTextDanger, selectedChip === 'low_stock' && styles.filterChipTextAccent]}>Low Stock</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.filterChip,
-              styles.filterChipWarning,
-              selectedChip === 'expiring' && styles.filterChipActive
-            ]}
-            onPress={() => handleChipPress('expiring')}
-            activeOpacity={0.8}
-          >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: LIGHT.warning }} />
-            <Text style={[styles.filterChipText, styles.filterChipTextWarning, selectedChip === 'expiring' && styles.filterChipTextAccent]}>Expiring</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.filterChip,
-              styles.filterChipAccent,
-              selectedChip === 'schedule_h1' && styles.filterChipActive
-            ]}
-            onPress={() => handleChipPress('schedule_h1')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterChipText, styles.filterChipTextAccent, selectedChip === 'schedule_h1' && styles.filterChipTextAccent]}>Schedule H1</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Summary chips */}
-        {summaryData && (
-          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(200)}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={[styles.filterRow, { marginTop: SPACING.sm, paddingBottom: SPACING.xs }]}
-            >
-              <View style={styles.summaryChip}>
-                <View style={[styles.summaryChipDot, { backgroundColor: LIGHT.accent }]} />
-                <Text style={styles.summaryChipText}>{summaryData.totalProducts} medicines</Text>
-              </View>
-              <View style={styles.summaryChip}>
-                <View style={[styles.summaryChipDot, { backgroundColor: LIGHT.success }]} />
-                <Text style={styles.summaryChipText}>{formatCurrency(summaryData.totalStockValue)}</Text>
-              </View>
-            </ScrollView>
-          </Animated.View>
-        )}
-      </LiquidPanel>
-
-      {/* ── Tab Bar ── */}
-      <View style={styles.tabBarWrap}>
-        <View style={styles.tabBarInner}>
-          {TABS.map((tab, idx) => (
-            <TouchableOpacity
-              key={tab}
-              style={styles.tabItem}
-              onPress={() => handleTabPress(idx)}
-              activeOpacity={0.8}
-            >
-              <Text style={activeTab === idx ? styles.tabTextActive : styles.tabText}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={styles.tabIndicatorTrack}>
-          <Animated.View style={[styles.tabIndicator, indicatorStyle]} />
-        </View>
-      </View>
+      <WorkspaceHeader title="Inventory" icon="cube-outline" subtitle="Medicines, batches and expiry dates" safeArea>
+        <WorkspaceSearch label="Search medicines" value={search} onChangeText={handleSearch} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>{([
+          { key: 'all', label: 'All medicines' }, { key: 'low_stock', label: 'Low stock' }, { key: 'expiring', label: 'Expiring' }, { key: 'schedule_h1', label: 'Schedule H1' },
+        ] as const).map(filter => <WorkspaceChip key={filter.key} label={filter.label} selected={selectedChip === filter.key} onPress={() => handleChipPress(filter.key)} />)}</ScrollView>
+        {summaryData && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}><Text style={{ color: LIGHT.textSecondary, fontSize: 12 }}>{summaryData.totalProducts} medicines</Text><Text style={{ color: LIGHT.textSecondary, fontSize: 12 }}>· {formatCurrency(summaryData.totalStockValue)} stock value</Text></View>}
+      </WorkspaceHeader>
 
       {/* ── List ── */}
       {activeTab === 0 && (
@@ -1087,15 +949,7 @@ export default function InventoryIndexScreen() {
       )}
 
       {/* ── FAB ── */}
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel="Add medicine"
-        style={[styles.fab, { bottom: layout.scrollBottom }]}
-        onPress={() => router.push('/(app)/inventory/add')}
-        activeOpacity={0.88}
-      >
-        <Ionicons name="add" size={26} color={LIGHT.textOnAccent} />
-      </TouchableOpacity>
+      <WorkspaceFab label="Add medicine" onPress={() => router.push('/(app)/inventory/add')} bottom={layout.scrollBottom} />
     </View>
   );
 }

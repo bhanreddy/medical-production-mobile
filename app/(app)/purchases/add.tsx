@@ -1,18 +1,9 @@
+import { Button } from '@/components/ui/Button';
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceIconButton } from '@/components/ui/Workspace';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Modal,
-  FlatList,
-  TextInput,
-} from 'react-native';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -253,32 +244,7 @@ export default function AddPurchaseScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={goBack} style={[styles.backBtn, { padding: 12, marginLeft: -12, marginRight: 4 }]} hitSlop={15}>
-            <Ionicons name="close" size={24} color={theme.colors.text.primary} />
-          </TouchableOpacity>
-          <Text
-            style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}
-            numberOfLines={1}
-          >
-            Record Purchase
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.camBtn} onPress={handleScanBill} disabled={scanBill.isPending}>
-          {scanBill.isPending ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-          ) : (
-            <Ionicons name="camera" size={20} color={theme.colors.primary} />
-          )}
-          <Text
-            style={{ color: theme.colors.primary, fontFamily: theme.typography.family.semiBold, marginLeft: 4, fontSize: 13 }}
-            numberOfLines={1}
-          >
-            {scanBill.isPending ? 'Scanning' : 'Scan'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <WorkspaceHeader title="Record purchase" subtitle="Supplier invoice and received stock" close onBack={goBack} actions={<WorkspaceIconButton icon="camera-outline" label={scanBill.isPending ? "Scanning bill" : "Scan purchase bill"} disabled={scanBill.isPending} onPress={handleScanBill} />} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -411,17 +377,7 @@ export default function AddPurchaseScreen() {
       </KeyboardAvoidingView>
 
       <View style={[styles.footer, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border, paddingBottom: insets.bottom || 16 }]}>
-        <TouchableOpacity
-          style={[styles.saveBtn, { backgroundColor: theme.colors.primary }]}
-          disabled={createPurchase.isPending || scanBill.isPending}
-          onPress={handleSave}
-        >
-          {createPurchase.isPending ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text style={{ color: '#FFF', fontFamily: theme.typography.family.semiBold, fontSize: 16 }}>Confirm Purchase</Text>
-          )}
-        </TouchableOpacity>
+        <Button title="Confirm purchase" onPress={handleSave} isLoading={createPurchase.isPending} disabled={scanBill.isPending} />
       </View>
 
       <Modal visible={medicineModalRow !== null} animationType="slide" transparent>
@@ -547,7 +503,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   footer: { padding: 16, borderTopWidth: 0.5 },
-  saveBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  saveBtn: { minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',

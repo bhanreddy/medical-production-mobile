@@ -1,9 +1,11 @@
+import { AppText as Text } from '@/components/ui/AppText';
+import { WorkspaceHeader, WorkspaceCard, WorkspaceFab, WorkspaceChip } from '@/components/ui/Workspace';
 import { mobileLayout } from '@/theme/mobileLayout';
 import { useGlassPreferences } from '@/components/glass/LiquidGlass';
 import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
-import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
-import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { useWindowDimensions, View, Text, StyleSheet, ActivityIndicator, Animated, TextInput, Alert, TouchableOpacity } from 'react-native';
+import { LiquidSheen } from '@/components/glass/LiquidGlass';
+import { useRef, useState, useMemo, useEffect } from 'react';
+import { useWindowDimensions, View, StyleSheet, ActivityIndicator, Animated, Alert, TouchableOpacity } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import NetInfo from '@react-native-community/netinfo';
 import { FlashList } from '@shopify/flash-list';
@@ -218,51 +220,9 @@ export default function ExpensesIndexScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <GlassMeshBackground />
-      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-         <TouchableOpacity 
-           onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
-           style={[styles.backBtn, { borderColor: theme.colors.border }]}
-           hitSlop={15}
-         >
-           <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
-         </TouchableOpacity>
-         <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={{ fontSize: 20, fontFamily: theme.typography.family.bold, color: theme.colors.text.primary }}>Expenses</Text>
-            <Text style={{ fontSize: 11, fontFamily: theme.typography.family.medium, color: theme.colors.text.secondary }}>
-               {PERIOD_OPTIONS.find(o => o.value === activePeriod)?.label}
-            </Text>
-         </View>
-         <View style={[styles.totalBadge, { borderColor: theme.colors.border }]}>
-            <Text style={{ fontSize: 9, color: theme.colors.text.secondary, fontFamily: theme.typography.family.medium, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total</Text>
-            <Text style={{ fontSize: 16, fontFamily: theme.typography.family.bold, color: theme.colors.danger, marginTop: 2 }}>
-               {summary ? formatCurrency(summary.totalAmount) : '...'}
-            </Text>
-         </View>
-      </LiquidPanel>
+      <WorkspaceHeader title="Expenses" icon="wallet-outline" subtitle={PERIOD_OPTIONS.find(o => o.value === activePeriod)?.label} onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} />
 
-      {/* Period Selector Container */}
-      <View style={[styles.segmentContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9', borderColor: theme.colors.border }]}>
-         {PERIOD_OPTIONS.map((opt) => {
-            const isActive = activePeriod === opt.value;
-            return (
-               <TouchableOpacity 
-                  key={opt.value}
-                  style={[
-                     styles.segmentButton,
-                     isActive && [styles.segmentButtonActive, { backgroundColor: theme.colors.surface }]
-                  ]}
-                  onPress={() => { Haptics.selectionAsync(); setActivePeriod(opt.value); }}
-                  activeOpacity={0.8}
-               >
-                  <Text style={{ 
-                     color: isActive ? theme.colors.text.primary : theme.colors.text.secondary,
-                     fontFamily: isActive ? theme.typography.family.semiBold : theme.typography.family.medium,
-                     fontSize: 12
-                  }}>{opt.label}</Text>
-               </TouchableOpacity>
-            );
-         })}
-      </View>
+      <ScrollView horizontal style={{ flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>{PERIOD_OPTIONS.map(opt => <WorkspaceChip key={opt.value} label={opt.label} selected={activePeriod === opt.value} onPress={() => { Haptics.selectionAsync(); setActivePeriod(opt.value); }} />)}</ScrollView>
 
       <View style={{ flex: 1 }}>
         <FlashListAny
@@ -306,7 +266,7 @@ export default function ExpensesIndexScreen() {
           }
           renderItem={({ item }: { item: Expense }) => (
             <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item.id)} friction={2}>
-              <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <WorkspaceCard style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
                 <LiquidSheen dark={isDark} />
                 <View style={[styles.iconCircle, { backgroundColor: getCatColor(item.category) + '15' }]}>
                   <Ionicons name={getCategoryIcon(item.category)} size={18} color={getCatColor(item.category)} />
@@ -320,7 +280,7 @@ export default function ExpensesIndexScreen() {
                 <Text style={{ fontFamily: theme.typography.family.bold, fontSize: 15, color: theme.colors.danger }}>
                    {formatCurrency(item.amount)}
                 </Text>
-              </View>
+              </WorkspaceCard>
             </Swipeable>
           )}
           onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
@@ -328,15 +288,7 @@ export default function ExpensesIndexScreen() {
         />
       </View>
 
-      <TouchableOpacity 
-         style={[styles.fab, theme.shadow.fab]}
-         onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); sheetRef.current?.expand(); }}
-         activeOpacity={0.8}
-      >
-         <View style={[styles.fabGradient, { backgroundColor: theme.colors.primary }]}>
-            <Ionicons name="add" size={28} color={theme.colors.text.inverse} />
-         </View>
-      </TouchableOpacity>
+      <WorkspaceFab label="Log expense" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); sheetRef.current?.expand(); }} bottom={insets.bottom + 20} />
 
       <BottomSheet ref={sheetRef} snapPoints={['65%']} title="Log Expense">
          <View style={{ flex: 1, justifyContent: 'space-between' }}>
@@ -362,10 +314,10 @@ export default function ExpensesIndexScreen() {
                        <Ionicons 
                          name={getCategoryIcon(opt.value)} 
                          size={14} 
-                         color={formCategory === opt.value ? '#FFF' : theme.colors.text.secondary} 
+                         color={formCategory === opt.value ? theme.colors.text.inverse : theme.colors.text.secondary}
                        />
                        <Text style={{ 
-                         color: formCategory === opt.value ? '#FFF' : theme.colors.text.secondary,
+                         color: formCategory === opt.value ? theme.colors.text.inverse : theme.colors.text.secondary,
                          fontFamily: formCategory === opt.value ? theme.typography.family.semiBold : theme.typography.family.regular,
                          fontSize: 12,
                          marginLeft: 6
@@ -552,7 +504,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   submitBtn: { 
-    height: 48, 
+    minHeight: 48,
     borderRadius: 12, 
     justifyContent: 'center', 
     alignItems: 'center',

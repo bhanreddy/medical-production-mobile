@@ -81,9 +81,9 @@ export function LiquidPanel({ dark, children, style, interactive, tone, material
   dark: boolean; variant?: 'card' | 'header'; interactive?: boolean; tone?: 'sapphire' | 'violet' | 'amber'; material?: 'surface' | 'chrome' | 'hero';
 }) {
   const c = (dark ? darkTheme : theme).colors;
-  return <View {...props} style={[styles.panel, { backgroundColor: c.surface, borderColor: c.border }, style, variant === 'header' && { borderRadius: 0, borderWidth: 0, borderBottomWidth: 1, shadowOpacity: 0, elevation: 0 }]}>{children}</View>;
+  return <View {...props} style={[styles.panel, { backgroundColor: c.surface, borderColor: c.border }, style, { shadowOpacity: 0, elevation: 0 }, variant === 'header' && { borderRadius: 0, borderWidth: 0, borderBottomWidth: 1, shadowOpacity: 0, elevation: 0 }]}>{children}</View>;
 }
 /** Compatibility exports: gloss and decorative backdrops have been retired. */
 export const LiquidSheen = memo(function LiquidSheen(_props: { dark: boolean; radius?: number }) { return null; });
 export const LiquidBackdrop = memo(function LiquidBackdrop(_props: { dark: boolean }) { return null; });
-const styles = StyleSheet.create({ panel: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' } });
+const styles = StyleSheet.create({ panel: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' } });

@@ -11,6 +11,7 @@ import Animated, {
 import { router } from 'expo-router';
 import Svg, { Rect } from 'react-native-svg';
 import { useTheme } from '@/hooks/useTheme';
+import { brandBlue } from '@/theme/nexsyrus';
 import { useAuthStore } from '@/stores/authStore';
 
 /* ─── Medical Cross Logo ────────────────────────────── */
@@ -83,8 +84,8 @@ export default function SplashScreen() {
   }));
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.primary }]}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
+    <View style={[styles.container, { backgroundColor: brandBlue }]}>
+      <StatusBar barStyle="light-content" backgroundColor={brandBlue} />
 
       <Animated.View style={[styles.logoContainer, logoAnimStyle]}>
         <MedicalCross size={80} color="#FFFFFF" />

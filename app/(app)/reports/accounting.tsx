@@ -598,7 +598,7 @@ Generated automatically by M-POS`;
                                      <Text 
                                         style={{ 
                                            color: isSelected 
-                                              ? '#FFF' 
+                                              ? theme.colors.text.inverse
                                               : inRange 
                                                  ? theme.colors.primary 
                                                  : theme.colors.text.primary,

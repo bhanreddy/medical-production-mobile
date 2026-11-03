@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, type ViewProps } from 'react-native';
-import { nexsyPalette } from '@/theme/nexsyrus';
+import { brandBlue, nexsyPaletteFor } from '@/theme/nexsyrus';
+import { useTheme } from '@/hooks/useTheme';
 
-/** Opaque dashboard cards, including when the rest of the app uses dark mode. */
+/** Dashboard cards follow the same appearance as every other workspace. */
 export function DashboardPanel({ children, style, material, ...props }: ViewProps & { material?: 'hero' }) {
   const hero = material === 'hero';
+  const { isDark } = useTheme();
+  const p = nexsyPaletteFor(isDark);
   return <View {...props} style={[{ borderWidth: 1, borderRadius: 14, overflow: 'hidden' }, style, {
-    backgroundColor: hero ? nexsyPalette.accent : nexsyPalette.solid,
-    borderColor: hero ? nexsyPalette.accent : nexsyPalette.edge,
+    backgroundColor: hero ? brandBlue : p.solid,
+    borderColor: hero ? brandBlue : p.edge,
   }]}>{children}</View>;
 }

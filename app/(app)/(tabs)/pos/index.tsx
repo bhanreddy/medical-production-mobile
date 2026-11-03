@@ -295,7 +295,7 @@ export default function PosScreen() {
                   <Swipeable
                     renderRightActions={() => (
                       <TouchableOpacity style={[styles.deleteAction, { backgroundColor: theme.colors.danger }]} onPress={() => cartStore.removeItem(item.batchId)}>
-                         <Ionicons name="trash-outline" size={24} color="#fff" />
+                         <Ionicons name="trash-outline" size={24} color={theme.colors.text.inverse} />
                       </TouchableOpacity>
                     )}
                   >

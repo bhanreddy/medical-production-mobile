@@ -27,7 +27,7 @@ import Svg, {
 } from 'react-native-svg';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useTheme } from '@/hooks/useTheme';
-import { nexsyPalette } from '@/theme/nexsyrus';
+import { brandBlue, nexsyPaletteFor } from '@/theme/nexsyrus';
 import { DashboardPanel } from '@/components/dashboard/DashboardPanel';
 import { ScrollReveal, RevealViewportContext } from '@/components/dashboard/ScrollReveal';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
@@ -231,8 +231,8 @@ function RevenueChart({
 function DashboardContent() {
   const { theme, isDark, toggleTheme } = useTheme();
   const { reduceMotion } = useGlassPreferences();
-  const p = nexsyPalette,
-    successColor = '#267552',
+  const p = nexsyPaletteFor(isDark),
+    successColor = theme.colors.success,
     insets = useSafeAreaInsets();
   const { width, height, fontScale } = useWindowDimensions();
   const layout = mobileLayout(width, fontScale, insets.bottom);
@@ -338,7 +338,7 @@ function DashboardContent() {
   ];
   return (
     <View testID="dashboard-screen" style={[s.screen, { backgroundColor: p.background }]}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
       <RevealViewportContext.Provider value={revealViewport}>
       <Animated.ScrollView testID="dashboard-scroll"
         onScroll={scrollHandler}
@@ -515,22 +515,22 @@ function DashboardContent() {
                 <Ionicons
                   name="add-circle-outline"
                   size={21}
-                  color={p.accent}
+                  color={brandBlue}
                 />
-                <Text style={[s.primaryText, { color: p.accent }]}>
+                <Text style={[s.primaryText, { color: brandBlue }]}>
                   New sale
                 </Text>
                 <Ionicons
                   name="arrow-up-outline"
                   size={19}
-                  color={p.accent}
+                  color={brandBlue}
                   style={{ transform: [{ rotate: '45deg' }] }}
                 />
               </Pressable>
               </View>
               </View>
-              <View pointerEvents="none" style={[s.heroNotch, { left: -10 }]} />
-              <View pointerEvents="none" style={[s.heroNotch, { right: -10 }]} />
+              <View pointerEvents="none" style={[s.heroNotch, { left: -10, backgroundColor: p.background }]} />
+              <View pointerEvents="none" style={[s.heroNotch, { right: -10, backgroundColor: p.background }]} />
             </DashboardPanel>
           </ScrollReveal>
           <ScrollReveal testID="dashboard-section" style={[s.overview, wide && s.horizontal]}>
@@ -704,7 +704,7 @@ function DashboardContent() {
                 accessibilityRole="button"
                 accessibilityLabel={action.label}
                 onPress={action.action}
-                style={[s.quickAction, layout.largeText && { flexBasis: '100%' }]}
+                style={[s.quickAction, { backgroundColor: p.soft, borderColor: p.edge }, layout.largeText && { flexBasis: '100%' }]}
               >
                 <Symbol icon={action.icon} palette={p} color={action.color} />
                 <Text style={[s.actionLabel, { color: p.text }]}>
@@ -717,7 +717,7 @@ function DashboardContent() {
           </ScrollReveal>
           <ScrollReveal testID="dashboard-section" style={[s.overview, wide && s.horizontal, wide && { alignItems: 'flex-start' }]}>
             <DashboardPanel style={[s.listPanel, wide && s.flex]}>
-              {!!recentCustomers.length && <View style={s.customerStack}>{recentCustomers.map((name, index) => <View key={name} style={[s.customerAvatar, { marginLeft: index ? -8 : 0, backgroundColor: index === 2 ? p.accent : index === 1 ? '#EEF2FF' : '#DCE6FF' }]}><Text style={{ color: index === 2 ? '#FFFFFF' : p.accent, fontSize: 9, fontWeight: '600' }}>{name.split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase()}</Text></View>)}</View>}
+              {!!recentCustomers.length && <View style={s.customerStack}>{recentCustomers.map((name, index) => <View key={name} style={[s.customerAvatar, { marginLeft: index ? -8 : 0, borderColor: p.solid, backgroundColor: index === 2 ? brandBlue : p.soft }]}><Text style={{ color: index === 2 ? '#FFFFFF' : p.accent, fontSize: 9, fontWeight: '600' }}>{name.split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase()}</Text></View>)}</View>}
               <SectionTitle
                 title="Recent sales"
                 palette={p}
@@ -829,7 +829,7 @@ function DashboardContent() {
                 />
               </SectionTitle>
               <View style={[s.stockLayout, layout.largeText && { flexDirection: 'column' }]}>
-              <Pressable accessibilityRole="button" accessibilityLabel="Open inventory overview" onPress={() => go('/(app)/(tabs)/inventory')} style={s.stockVisual}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Open inventory overview" onPress={() => go('/(app)/(tabs)/inventory')} style={[s.stockVisual, { backgroundColor: p.soft, borderColor: p.edge }]}>
                 <Image source={require('../../../../assets/images/login-medical-products-realistic.png')} resizeMode="contain" style={s.stockImage} accessibilityIgnoresInvertColors />
                 <View style={s.stockCaption}><Text style={{ color: '#FFFFFF', flex: 1, fontSize: 10, fontWeight: '600' }}>Inventory overview</Text><Ionicons name="arrow-up-outline" size={15} color="#FFFFFF" style={{ transform: [{ rotate: '45deg' }] }} /></View>
               </Pressable>
@@ -841,7 +841,7 @@ function DashboardContent() {
                   key={item.label}
                   onPress={item.action}
                   style={[
-                    s.stockTile,
+                    s.stockTile, { backgroundColor: p.solid, borderColor: p.edge },
                   ]}
                 >
                   <View style={s.flex}>
@@ -921,10 +921,10 @@ function DashboardContent() {
       <Modal visible={notificationsOpen} transparent animationType={reduceMotion ? 'none' : 'fade'} onRequestClose={() => setNotificationsOpen(false)}>
         <View style={[s.notificationRoot, { paddingTop: insets.top + 64 }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close notifications" onPress={() => setNotificationsOpen(false)} style={[StyleSheet.absoluteFill, { backgroundColor: '#14213A24' }]} />
-          <View testID="notification-panel" accessibilityViewIsModal style={[s.notificationPanel, { maxHeight: Math.max(0, height - insets.top - insets.bottom - 84), width: Math.min(width - 24, 360) }]}>
-            <View style={s.notificationHeader}><Ionicons name="notifications-outline" size={18} color={p.accent} /><Text accessibilityRole="header" style={{ flex: 1, color: p.text, fontSize: 14, fontWeight: '600' }}>Notifications</Text><Pressable accessibilityRole="button" accessibilityLabel="Close notifications" onPress={() => setNotificationsOpen(false)} style={s.notificationClose}><Ionicons name="close" size={19} color={p.muted} /></Pressable></View>
+          <View testID="notification-panel" accessibilityViewIsModal style={[s.notificationPanel, { backgroundColor: p.solid, borderColor: p.edge, maxHeight: Math.max(0, height - insets.top - insets.bottom - 84), width: Math.min(width - 24, 360) }]}>
+            <View style={[s.notificationHeader, { borderColor: p.edge }]}><Ionicons name="notifications-outline" size={18} color={p.accent} /><Text accessibilityRole="header" style={{ flex: 1, color: p.text, fontSize: 14, fontWeight: '600' }}>Notifications</Text><Pressable accessibilityRole="button" accessibilityLabel="Close notifications" onPress={() => setNotificationsOpen(false)} style={s.notificationClose}><Ionicons name="close" size={19} color={p.muted} /></Pressable></View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {dashboard.isLoading ? <ActivityIndicator accessibilityLabel="Loading notifications" color={p.accent} style={{ padding: 24 }} /> : unavailable ? <Pressable accessibilityRole="button" onPress={onRefresh} style={s.notificationRow}><Text style={{ color: p.muted, fontSize: 12 }}>Notifications couldn’t load. Tap to retry.</Text></Pressable> : attention.map(item => <Pressable key={item.label} accessibilityRole="button" accessibilityLabel={`${item.label}, ${item.count}`} onPress={() => { setNotificationsOpen(false); item.action(); }} style={s.notificationRow}>
+              {dashboard.isLoading ? <ActivityIndicator accessibilityLabel="Loading notifications" color={p.accent} style={{ padding: 24 }} /> : unavailable ? <Pressable accessibilityRole="button" onPress={onRefresh} style={[s.notificationRow, { borderColor: p.edge }]}><Text style={{ color: p.muted, fontSize: 12 }}>Notifications couldn’t load. Tap to retry.</Text></Pressable> : attention.map(item => <Pressable key={item.label} accessibilityRole="button" accessibilityLabel={`${item.label}, ${item.count}`} onPress={() => { setNotificationsOpen(false); item.action(); }} style={[s.notificationRow, { borderColor: p.edge }]}>
                 <View style={[s.notificationIcon, { backgroundColor: `${item.color}12` }]}><Ionicons name={item.icon} size={18} color={item.color} /></View>
                 <View style={{ flex: 1 }}><Text style={{ color: p.text, fontSize: 12, fontWeight: '600' }}>{item.label}</Text><Text style={{ color: p.muted, fontSize: 11, lineHeight: 17, marginTop: 3 }}>{item.count ? `${item.count} ${item.count === 1 ? 'item needs' : 'items need'} attention` : 'You’re all up to date'}</Text></View>
                 {!!item.count && <View style={s.notificationCount}><Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }}>{item.count > 99 ? '99+' : item.count}</Text></View>}<Ionicons name="chevron-forward" size={13} color={p.muted} />

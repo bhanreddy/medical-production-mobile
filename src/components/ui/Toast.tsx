@@ -11,7 +11,6 @@ import { useUIStore, type ToastType } from '@/stores/uiStore';
 const ICONS: Record<ToastType, keyof typeof Ionicons.glyphMap> = {
   success: 'checkmark-circle-outline', error: 'close-circle-outline', info: 'information-circle-outline', warning: 'alert-circle-outline',
 };
-const TONES = { success: ['#267552', '#EDF8F1'], error: ['#B63D60', '#FFF0F4'], info: ['#2457E6', '#EDF2FF'], warning: ['#94630B', '#FFF6DC'] };
 
 export function ToastProvider() {
   const toast = useUIStore(s => s.toasts[0]);
@@ -27,12 +26,14 @@ export function ToastProvider() {
     return () => clearTimeout(timer);
   }, [toast?.id, toast?.type, remove]);
   if (!toast) return null;
-  const [color, background] = TONES[toast.type] ?? TONES.info;
+  const c = theme.colors;
+  const tones = { success: [c.success, c.successLight], error: [c.danger, c.dangerLight], info: [c.primary, c.primaryLight], warning: [c.warning, c.warningLight] };
+  const [color, background] = tones[toast.type] ?? tones.info;
   return <View style={[styles.container, { top: insets.top + 12 }]} pointerEvents="box-none">
-    <Animated.View key={toast.id} accessibilityRole="alert" accessibilityLiveRegion="polite" entering={reduceMotion ? undefined : SlideInUp.duration(180)} exiting={reduceMotion ? undefined : FadeOutUp.duration(150)} style={[styles.toast, { width: Math.min(width - 24, 350) }]}>
+    <Animated.View key={toast.id} accessibilityRole="alert" accessibilityLiveRegion="polite" entering={reduceMotion ? undefined : SlideInUp.duration(180)} exiting={reduceMotion ? undefined : FadeOutUp.duration(150)} style={[styles.toast, { width: Math.min(width - 24, 350), backgroundColor: c.surface, borderColor: c.border }]}>
       <View style={[styles.iconCircle, { backgroundColor: background }]}><Ionicons name={ICONS[toast.type] ?? ICONS.info} size={18} color={color} /></View>
-      <Text style={[styles.text, { fontFamily: theme.typography.family.medium, fontSize: fontScale >= 1.4 ? 13 : 12 }]}>{toast.message}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel="Dismiss notification" onPress={() => remove(toast.id)} style={styles.close}><Ionicons name="close" size={16} color="#657087" /></Pressable>
+      <Text style={[styles.text, { color: c.text.primary, fontFamily: theme.typography.family.medium, fontSize: fontScale >= 1.4 ? 13 : 12 }]}>{toast.message}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Dismiss notification" onPress={() => remove(toast.id)} style={styles.close}><Ionicons name="close" size={16} color={c.text.secondary} /></Pressable>
     </Animated.View>
   </View>;
 }

@@ -1,32 +1,11 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, memo } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, View, type ViewProps } from 'react-native';
+import { AccessibilityInfo, Appearance, Platform, StyleSheet, View, type ViewProps } from 'react-native';
+import { DefaultTheme, DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { theme, darkTheme } from '@/theme';
 import { useUIStore } from '@/stores/uiStore';
 
-const buildPalette = (dark: boolean) => {
-  const c = (dark ? darkTheme : theme).colors;
-  return {
-    background: c.background,
-    text: c.text.primary,
-    muted: c.text.secondary,
-    accent: c.primary,
-    buttonText: c.text.inverse,
-    edge: c.border,
-    grid: c.border,
-    solid: c.surface,
-    soft: c.primaryLight,
-    amber: c.warning,
-    rose: c.danger,
-    violet: c.accent,
-    violetSoft: c.accentLight,
-    amberSoft: c.warningLight,
-    roseSoft: c.dangerLight,
-  };
-};
-const lightPalette = buildPalette(false);
-const darkPalette = buildPalette(true);
-export const liquidPalette = (dark: boolean) => dark ? darkPalette : lightPalette;
-export type LiquidPalette = ReturnType<typeof liquidPalette>;
+export { nexsyPaletteFor as liquidPalette } from '@/theme/nexsyrus';
+export type LiquidPalette = ReturnType<typeof import('@/theme/nexsyrus').nexsyPaletteFor>;
 
 const Preferences = createContext({
   reduceMotion: true,
@@ -36,6 +15,17 @@ const Preferences = createContext({
 export const useGlassPreferences = () => useContext(Preferences);
 export function LiquidGlassProvider({ children }: React.PropsWithChildren) {
   const lightweight = useUIStore((state) => state.glassMode === 'lightweight');
+  const preferencesReady = useUIStore((state) => state.preferencesReady);
+  const isDark = useUIStore((state) => state.isDark);
+  useEffect(() => { void useUIStore.getState().hydratePreferences(); }, []);
+  useEffect(() => {
+    if (preferencesReady && Platform.OS !== 'web') Appearance.setColorScheme(isDark ? 'dark' : 'light');
+  }, [isDark, preferencesReady]);
+  const navigationTheme = useMemo(() => {
+    const c = (isDark ? darkTheme : theme).colors;
+    const base = isDark ? DarkTheme : DefaultTheme;
+    return { ...base, colors: { ...base.colors, background: c.background, card: c.surface, text: c.text.primary, border: c.border, primary: c.primary, notification: c.danger } };
+  }, [isDark]);
   const [preferences, setPreferences] = useState({
     reduceMotion: true,
     reduceTransparency: true,
@@ -71,7 +61,9 @@ export function LiquidGlassProvider({ children }: React.PropsWithChildren) {
     reduceMotion: preferences.reduceMotion || lightweight,
   }), [preferences, lightweight]);
   return (
-    <Preferences.Provider value={value}>{children}</Preferences.Provider>
+    <ThemeProvider value={navigationTheme}>
+      <Preferences.Provider value={value}>{preferencesReady ? children : <View style={{ flex: 1, backgroundColor: (isDark ? darkTheme : theme).colors.background }} />}</Preferences.Provider>
+    </ThemeProvider>
   );
 }
 

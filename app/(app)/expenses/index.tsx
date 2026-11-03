@@ -204,7 +204,7 @@ export default function ExpensesIndexScreen() {
     return (
       <TouchableOpacity style={[styles.swipeAction, { backgroundColor: theme.colors.danger }]} onPress={() => confirmDelete(id)}>
         <Animated.View style={{ transform: [{ scale }] }}>
-          <Ionicons name="trash" size={24} color="#FFF" />
+          <Ionicons name="trash" size={24} color={theme.colors.text.inverse} />
         </Animated.View>
       </TouchableOpacity>
     );

@@ -117,7 +117,7 @@ export default function PatientDetailScreen() {
 
 
             <View style={styles.bannerCenter}>
-               <View style={[styles.avatarBig, { backgroundColor: theme.colors.primary }]}>
+               <View style={[styles.avatarBig, { backgroundColor: theme.colors.primary, borderColor: theme.colors.surface }]}>
                  <Text style={[styles.avatarTextBig, { fontFamily: theme.typography.family.bold, color: theme.colors.text.inverse }]}>{getInitials(customer.name)}</Text>
                </View>
                <Text style={[styles.bannerName, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>{customer.name}</Text>

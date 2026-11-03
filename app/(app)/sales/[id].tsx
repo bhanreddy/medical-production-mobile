@@ -196,9 +196,9 @@ export default function SaleDetailScreen() {
             onPress={handlePrint}
             disabled={isLoadingInvoice}
           >
-            {isLoadingInvoice ? <ActivityIndicator color="#FFF" /> : (
+            {isLoadingInvoice ? <ActivityIndicator color={theme.colors.text.inverse} /> : (
               <>
-               <Ionicons name="print-outline" size={18} color="#FFF" />
+               <Ionicons name="print-outline" size={18} color={theme.colors.text.inverse} />
                <Text style={{ color: theme.colors.text.inverse, fontFamily: theme.typography.family.semiBold, marginLeft: 6 }}>Print Invoice</Text>
               </>
             )}

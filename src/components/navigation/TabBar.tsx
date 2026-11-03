@@ -1,6 +1,5 @@
 import { AppText as Text } from '@/components/ui/AppText';
 import { DashboardPanel } from '@/components/dashboard/DashboardPanel';
-import { nexsyPalette } from '@/theme/nexsyrus';
 import { mobileLayout } from '@/theme/mobileLayout';
 import React, { useEffect, useState } from 'react';
 import {
@@ -90,7 +89,7 @@ function WorkspacePanel({ solid, dark, children, style, ...props }: React.PropsW
 function Dock({ state, navigation, descriptors }: BottomTabBarProps) {
   const { isDark } = useTheme();
   const onDashboard = state.routes[state.index]?.name === 'dashboard/index';
-  const p = onDashboard ? nexsyPalette : liquidPalette(isDark),
+  const p = liquidPalette(isDark),
     insets = useSafeAreaInsets();
   const { reduceMotion } = useGlassPreferences();
   const { width, height, fontScale } = useWindowDimensions();

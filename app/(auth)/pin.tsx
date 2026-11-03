@@ -48,7 +48,7 @@ type Mode = 'verify' | 'set' | 'confirm';
 /* ─── Screen ────────────────────────────────────────── */
 
 export default function PinScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -234,7 +234,7 @@ export default function PinScreen() {
         },
       ]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
 
       {/* ─── User Info ────────────────────────────── */}
       <Animated.View style={styles.userSection} entering={FadeIn.duration(300)}>

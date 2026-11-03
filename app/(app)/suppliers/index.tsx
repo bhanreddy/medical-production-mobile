@@ -87,8 +87,8 @@ export default function SuppliersIndexScreen() {
          }}
       >
         <Animated.View style={{ transform: [{ scale }] }}>
-          <Ionicons name="cash-outline" size={24} color="#FFF" />
-          <Text style={styles.actionText}>Pay Now</Text>
+          <Ionicons name="cash-outline" size={24} color={theme.colors.text.inverse} />
+          <Text style={[styles.actionText, { color: theme.colors.text.inverse }]}>Pay Now</Text>
         </Animated.View>
       </TouchableOpacity>
     );

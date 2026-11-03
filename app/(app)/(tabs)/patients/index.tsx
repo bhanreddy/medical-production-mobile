@@ -93,8 +93,8 @@ export default function PatientsIndexScreen() {
          }}
       >
         <Animated.View style={{ transform: [{ scale }] }}>
-          <Ionicons name="card-outline" size={24} color="#FFF" />
-          <Text style={styles.actionText}>Payment</Text>
+          <Ionicons name="card-outline" size={24} color={theme.colors.text.inverse} />
+          <Text style={[styles.actionText, { color: theme.colors.text.inverse }]}>Payment</Text>
         </Animated.View>
       </TouchableOpacity>
     );
@@ -115,8 +115,8 @@ export default function PatientsIndexScreen() {
          }}
       >
         <Animated.View style={{ transform: [{ scale }], alignItems: 'flex-start' }}>
-          <Ionicons name="notifications-outline" size={24} color="#FFF" />
-          <Text style={styles.actionText}>Reminder</Text>
+          <Ionicons name="notifications-outline" size={24} color={theme.colors.text.inverse} />
+          <Text style={[styles.actionText, { color: theme.colors.text.inverse }]}>Reminder</Text>
         </Animated.View>
       </TouchableOpacity>
     );

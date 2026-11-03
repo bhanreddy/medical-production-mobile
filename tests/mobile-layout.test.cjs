@@ -74,7 +74,7 @@ test('live optical material stays out of scrolling cards and lightweight mode', 
 
 test('lightweight rendering preference survives a restart independently of appearance', () => {
   const disk = new Map();
-  const mocks = { zustand: require('zustand'), '@/utils/storage': { store: { getString: key => disk.get(key), set: (key, value) => disk.set(key, value) } } };
+  const mocks = { '@/lib/uiPreferences': { readUIPreferences: async () => null, writeUIPreferences: async () => {} }, zustand: require('zustand'), '@/utils/storage': { store: { getString: key => disk.get(key), set: (key, value) => disk.set(key, value) } } };
   let ui = load('stores/uiStore.ts', mocks).useUIStore;
   assert.equal(ui.getState().glassMode, 'adaptive');
   ui.getState().setGlassMode('lightweight');

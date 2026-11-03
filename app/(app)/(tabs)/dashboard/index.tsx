@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   ActivityIndicator,
   Modal,
+  Image,
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -94,7 +95,7 @@ function RevenueChart({
   onSelect: (index: number) => void;
 }) {
   const [width, setWidth] = useState(300);
-  const height = 150,
+  const height = 130,
     left = 6,
     right = width - 6,
     top = 12,
@@ -228,7 +229,7 @@ function RevenueChart({
   );
 }
 function DashboardContent() {
-  const { isDark, toggleTheme } = useTheme();
+  const { theme, isDark, toggleTheme } = useTheme();
   const { reduceMotion } = useGlassPreferences();
   const p = nexsyPalette,
     successColor = '#267552',
@@ -254,6 +255,7 @@ function DashboardContent() {
   const value = (amount: number | undefined) =>
     dashboard.isLoading || unavailable ? '—' : money(amount || 0);
   const bills = data?.today_bills || 0;
+  const recentCustomers = [...new Set((data?.recent_activity ?? []).map(sale => sale.customer_name?.trim()).filter((name): name is string => Boolean(name)))].slice(0, 3);
   const firstName = user?.name?.trim().split(/\s+/)[0] || 'there';
   const hour = new Date().getHours(),
     greeting =
@@ -397,23 +399,11 @@ function DashboardContent() {
               </DashboardPanel>
             </View>
           </View>
-          <Text style={[s.greeting, { color: p.text, fontSize: layout.compact ? 29 : 34, lineHeight: layout.compact ? 36 : 42 }]}>
-            {greeting},{'\n'}
+          <Text style={[s.greeting, { color: p.text, fontSize: layout.compact ? 23 : 28, lineHeight: layout.compact ? 30 : 36 }]}>
+            {greeting},{' '}
             <Text style={{ fontWeight: '600' }}>{firstName}.</Text>
           </Text>
-          <View style={s.dateLine}>
-            <View style={[s.statusDot, { backgroundColor: p.accent }]} />
-            <Text style={[s.tiny, { color: p.muted, flexShrink: 1 }]}>
-              {format(new Date(), 'EEEE, dd MMMM')}
-            </Text>
-            {dashboard.isFetching && !refreshing && (
-              <ActivityIndicator
-                size="small"
-                color={p.accent}
-                style={{ marginLeft: 5 }}
-              />
-            )}
-          </View>
+
           {!dashboard.isLoading && !unavailable && alertTotal > 0 && (
             <Pressable
               accessibilityRole="button"
@@ -464,38 +454,42 @@ function DashboardContent() {
               </Pressable>
             </View>
           )}
-          <ScrollReveal testID="dashboard-section" style={[s.overview, wide && s.horizontal]}>
-            <DashboardPanel testID="dashboard-revenue" material="hero" style={[s.hero, { padding: layout.compact ? 20 : 24 }, wide && s.flex]}>
+          <ScrollReveal testID="dashboard-section">
+            <DashboardPanel testID="dashboard-revenue" material="hero" style={[s.hero, { padding: layout.compact ? 20 : 24 }]}>
               <View style={s.heroHeader}>
                 <Text style={[s.eyebrow, { color: '#E1EAFF' }]}>
                   TODAY AT A GLANCE
                 </Text>
-                <Ionicons name="receipt-outline" size={20} color="#FFFFFF" />
+                <View style={s.heroDate}><Text style={{ color: '#FFFFFF', fontSize: 10 }}>{format(new Date(), 'dd MMM yyyy')}</Text></View>
               </View>
+              <View style={[s.heroBody, wide && s.horizontal]}>
+              <View style={wide && s.flex}>
               <Text style={[s.revenueLabel, { color: '#E1EAFF' }]}>
                 Today’s revenue
               </Text>
               <Text
                 adjustsFontSizeToFit
                 numberOfLines={1}
-                style={[s.revenue, { color: '#FFFFFF', fontSize: layout.compact ? 42 : 48 }]}
+                style={[s.revenue, { color: '#FFFFFF', fontSize: wide ? 64 : layout.compact ? 42 : 50 }]}
               >
                 {value(data?.today_revenue)}
               </Text>
-              <View style={[s.heroStats, { borderColor: '#FFFFFF40' }, layout.largeText && { flexDirection: 'column' }]}>
+              </View>
+              <View style={[s.heroFooter, (layout.compact || layout.largeText) && { flexDirection: 'column', alignItems: 'stretch' }, wide && { flex: 1, paddingLeft: 24, paddingTop: 0, borderTopWidth: 0, borderLeftWidth: 1 }]}>
+              <View style={[s.heroStats, { borderColor: '#FFFFFF40', borderTopWidth: 0, paddingTop: 0, marginTop: 0, flex: 1 }, layout.largeText && { flexDirection: 'column' }]}>
                 <View style={s.flex}>
-                  <Text style={[s.tiny, { color: '#E1EAFF' }]}>
+                  <Text style={[s.tiny, { color: '#E1EAFF', fontSize: 10 }]}>
                     Invoices created
                   </Text>
                   <Text style={[s.statValue, { color: '#FFFFFF' }]}>
                     {dashboard.isLoading || unavailable
                       ? '—'
                       : bills.toLocaleString('en-IN')}{' '}
-                    <Text style={[s.tiny, { color: '#E1EAFF' }]}>bills</Text>
+                    <Text style={[s.tiny, { color: '#E1EAFF', fontSize: 10 }]}>bills</Text>
                   </Text>
                 </View>
                 <View style={s.flex}>
-                  <Text style={[s.tiny, { color: '#E1EAFF' }]}>Average bill</Text>
+                  <Text style={[s.tiny, { color: '#E1EAFF', fontSize: 10 }]}>Average bill</Text>
                   <Text
                     adjustsFontSizeToFit
                     numberOfLines={1}
@@ -507,9 +501,11 @@ function DashboardContent() {
               </View>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="New sale"
                 onPress={newSale}
                 style={({ pressed }) => [
                   s.primary,
+                  (layout.compact || layout.largeText) && { alignSelf: 'flex-start' },
                   {
                     backgroundColor: '#FFFFFF',
                     transform: [{ scale: pressed && !reduceMotion ? 0.98 : 1 }],
@@ -531,12 +527,18 @@ function DashboardContent() {
                   style={{ transform: [{ rotate: '45deg' }] }}
                 />
               </Pressable>
+              </View>
+              </View>
+              <View pointerEvents="none" style={[s.heroNotch, { left: -10 }]} />
+              <View pointerEvents="none" style={[s.heroNotch, { right: -10 }]} />
             </DashboardPanel>
+          </ScrollReveal>
+          <ScrollReveal testID="dashboard-section" style={[s.overview, wide && s.horizontal]}>
             <DashboardPanel testID="dashboard-report" style={[s.chartPanel, wide && s.flex]}>
               <SectionTitle
                 title={range === 7 ? "Weekly report" : "Revenue report"}
                 palette={p}
-              />
+              >
               <View style={[s.segments, { backgroundColor: p.soft }]}>
                 {([7, 30, 90] as const).map((days) => (
                   <Pressable
@@ -568,6 +570,7 @@ function DashboardContent() {
                   </Pressable>
                 ))}
               </View>
+              </SectionTitle>
               <Text
                 accessibilityLiveRegion="polite"
                 style={[s.chartAmount, { color: p.text }]}
@@ -614,8 +617,8 @@ function DashboardContent() {
                 </Text>
               )}
             </DashboardPanel>
-          </ScrollReveal>
-          <ScrollReveal testID="dashboard-financials" style={[s.metricGrid, layout.compact && { flexDirection: 'column' }]}>
+            <View style={[s.utilities, wide && s.flex]}>
+          <View testID="dashboard-financials" style={[s.metricGrid, layout.compact && { flexDirection: 'column' }]}>
             {[
               {
                 label: 'To collect',
@@ -665,13 +668,13 @@ function DashboardContent() {
                 </Pressable>
               </DashboardPanel>
             ))}
-          </ScrollReveal>
+          </View>
           <View style={s.actionHeading}>
             <Text style={[s.sectionName, { color: p.text }]}>
               Quick actions
             </Text>
           </View>
-          <ScrollReveal testID="dashboard-actions"><DashboardPanel style={s.quickActions}>
+          <View testID="dashboard-actions"><DashboardPanel style={s.quickActions}>
             {[
               {
                 label: 'Invoice',
@@ -699,8 +702,9 @@ function DashboardContent() {
               <Pressable
                 key={action.label}
                 accessibilityRole="button"
+                accessibilityLabel={action.label}
                 onPress={action.action}
-                style={[s.quickAction, layout.actionColumns === 2 && { flexBasis: '50%', flexGrow: 0, minHeight: 64 }]}
+                style={[s.quickAction, layout.largeText && { flexBasis: '100%' }]}
               >
                 <Symbol icon={action.icon} palette={p} color={action.color} />
                 <Text style={[s.actionLabel, { color: p.text }]}>
@@ -708,88 +712,12 @@ function DashboardContent() {
                 </Text>
               </Pressable>
             ))}
-          </DashboardPanel></ScrollReveal>
-          <ScrollReveal testID="dashboard-section" style={[s.overview, wide && s.horizontal]}>
+          </DashboardPanel></View>
+            </View>
+          </ScrollReveal>
+          <ScrollReveal testID="dashboard-section" style={[s.overview, wide && s.horizontal, wide && { alignItems: 'flex-start' }]}>
             <DashboardPanel style={[s.listPanel, wide && s.flex]}>
-              <SectionTitle
-                title="Stock alerts"
-                palette={p}
-              >
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={23}
-                  color={p.accent}
-                />
-              </SectionTitle>
-              {attention.map((item, i) => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${item.label}, ${dashboard.isLoading || unavailable ? 'unavailable' : item.count}. ${item.hint}`}
-                  key={item.label}
-                  onPress={item.action}
-                  style={[
-                    s.listRow,
-                    i > 0 && { borderTopWidth: 1, borderColor: p.grid },
-                  ]}
-                >
-                  <Symbol icon={item.icon} palette={p} color={item.color} />
-                  <View style={s.flex}>
-                    <Text style={[s.rowTitle, { color: p.text }]}>
-                      {item.label}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      s.count,
-                      {
-                        backgroundColor:
-                          !dashboard.isLoading &&
-                          !unavailable &&
-                          item.count > 0
-                            ? `${item.color}22`
-                            : p.soft,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: item.color,
-                        fontSize: 14,
-                        fontWeight: item.count > 0 ? '700' : '500',
-                        opacity:
-                          !dashboard.isLoading && !unavailable && item.count === 0
-                            ? 0.55
-                            : 1,
-                      }}
-                    >
-                      {dashboard.isLoading || unavailable ? '—' : item.count}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={14} color={p.muted} />
-                </Pressable>
-              ))}
-              <View style={[s.attentionNote, { backgroundColor: p.soft }]}>
-                <View
-                  style={[
-                    s.statusDot,
-                    {
-                      backgroundColor:
-                        alertTotal === 0 && !dashboard.isLoading && !unavailable
-                          ? successColor
-                          : p.accent,
-                    },
-                  ]}
-                />
-                <Text style={[s.tiny, { color: p.muted }]}>
-                  {dashboard.isLoading || unavailable
-                    ? 'Review stock and expiry dates.'
-                    : alertTotal === 0
-                      ? 'Stock is up to date.'
-                      : 'Review stock and expiry dates.'}
-                </Text>
-              </View>
-            </DashboardPanel>
-            <DashboardPanel style={[s.listPanel, wide && s.flex]}>
+              {!!recentCustomers.length && <View style={s.customerStack}>{recentCustomers.map((name, index) => <View key={name} style={[s.customerAvatar, { marginLeft: index ? -8 : 0, backgroundColor: index === 2 ? p.accent : index === 1 ? '#EEF2FF' : '#DCE6FF' }]}><Text style={{ color: index === 2 ? '#FFFFFF' : p.accent, fontSize: 9, fontWeight: '600' }}>{name.split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase()}</Text></View>)}</View>}
               <SectionTitle
                 title="Recent sales"
                 palette={p}
@@ -889,13 +817,104 @@ function DashboardContent() {
                 </View>
               )}
             </DashboardPanel>
+            <DashboardPanel style={[s.listPanel, wide && s.flex]}>
+              <SectionTitle
+                title="Stock alerts"
+                palette={p}
+              >
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={23}
+                  color={p.accent}
+                />
+              </SectionTitle>
+              <View style={[s.stockLayout, layout.largeText && { flexDirection: 'column' }]}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Open inventory overview" onPress={() => go('/(app)/(tabs)/inventory')} style={s.stockVisual}>
+                <Image source={require('../../../../assets/images/login-medical-products-realistic.png')} resizeMode="contain" style={s.stockImage} accessibilityIgnoresInvertColors />
+                <View style={s.stockCaption}><Text style={{ color: '#FFFFFF', flex: 1, fontSize: 10, fontWeight: '600' }}>Inventory overview</Text><Ionicons name="arrow-up-outline" size={15} color="#FFFFFF" style={{ transform: [{ rotate: '45deg' }] }} /></View>
+              </Pressable>
+              <View style={s.stockTiles}>
+              {attention.map((item) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.label}, ${dashboard.isLoading || unavailable ? 'unavailable' : item.count}. ${item.hint}`}
+                  key={item.label}
+                  onPress={item.action}
+                  style={[
+                    s.stockTile,
+                  ]}
+                >
+                  <View style={s.flex}>
+                    <Text style={[s.rowTitle, { color: p.text, fontSize: 11 }]}>
+                      {item.label}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      s.count,
+                      {
+                        backgroundColor:
+                          !dashboard.isLoading &&
+                          !unavailable &&
+                          item.count > 0
+                            ? `${item.color}22`
+                            : p.soft,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: item.color,
+                        fontSize: 14,
+                        fontWeight: item.count > 0 ? '700' : '500',
+                        opacity:
+                          !dashboard.isLoading && !unavailable && item.count === 0
+                            ? 0.55
+                            : 1,
+                      }}
+                    >
+                      {dashboard.isLoading || unavailable ? '—' : item.count}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+              </View>
+              </View>
+              <View style={[s.attentionNote, { backgroundColor: p.soft }]}>
+                <View
+                  style={[
+                    s.statusDot,
+                    {
+                      backgroundColor:
+                        alertTotal === 0 && !dashboard.isLoading && !unavailable
+                          ? successColor
+                          : p.accent,
+                    },
+                  ]}
+                />
+                <Text style={[s.tiny, { color: p.muted }]}>
+                  {dashboard.isLoading || unavailable
+                    ? 'Review stock and expiry dates.'
+                    : alertTotal === 0
+                      ? 'Stock is up to date.'
+                      : 'Review stock and expiry dates.'}
+                </Text>
+              </View>
+            </DashboardPanel>
           </ScrollReveal>
-          <View style={s.footer}>
-            <Text style={[s.star, { color: p.accent }]}>✳</Text>
-            <Text style={[s.tiny, { color: p.muted }]}>
-              Pharmacy overview
-            </Text>
-          </View>
+          <ScrollReveal testID="dashboard-brand">
+            <DashboardPanel material="hero" style={s.brandPanel}>
+              <View style={[s.brandPanelTop, wide && s.horizontal]}>
+                <View style={s.brandPanelLabel}><Ionicons name="add" size={24} color="#FFFFFF" /><Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>Pharmacy workspace</Text></View>
+                <View style={[s.brandTools, wide && { flex: 1, maxWidth: 360 }, layout.largeText && { flexWrap: 'wrap' }]}>{[
+                  { label: 'Purchases', path: '/(app)/purchases' },
+                  { label: 'Reorder', path: '/(app)/shortbook' },
+                  { label: 'Reports', path: '/(app)/reports' },
+                ].map(tool => <Pressable key={tool.label} accessibilityRole="button" accessibilityLabel={tool.label} onPress={() => go(tool.path)} style={s.brandTool}><Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }}>{tool.label}</Text><Ionicons name="arrow-forward" size={12} color="#FFFFFF" /></Pressable>)}</View>
+              </View>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={[s.wordmark, { fontSize: Math.min(layout.contentWidth * .23, 150), fontFamily: theme.typography.family.bold, letterSpacing: -Math.min(layout.contentWidth * .23, 150) * .045 }]}>nexsyrus</Text>
+            </DashboardPanel>
+          </ScrollReveal>
         </View>
       </Animated.ScrollView>
       </RevealViewportContext.Provider>
@@ -987,7 +1006,26 @@ const s = StyleSheet.create({
   retry: { padding: 8 },
   overview: { gap: 16 },
   horizontal: { flexDirection: 'row', alignItems: 'stretch' },
-  hero: { padding: 22, borderRadius: 14 },
+  hero: { padding: 22, borderRadius: 18 },
+  heroBody: { gap: 14 },
+  heroFooter: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, borderTopWidth: 1, borderColor: '#FFFFFF35', paddingTop: 14 },
+  heroDate: { borderWidth: 1, borderColor: '#FFFFFF45', borderRadius: 20, paddingVertical: 5, paddingHorizontal: 10 },
+  heroNotch: { position: 'absolute', top: '50%', width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFFFF' },
+  utilities: { gap: 12 },
+  customerStack: { flexDirection: 'row', marginBottom: 8 },
+  customerAvatar: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  stockLayout: { flexDirection: 'row', gap: 10 },
+  stockVisual: { flex: 1.1, borderRadius: 12, overflow: 'hidden', backgroundColor: '#F0F4FF', borderWidth: 1, borderColor: '#E4E9F2' },
+  stockImage: { width: '100%', height: 160 },
+  stockCaption: { minHeight: 40, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#2457E6' },
+  stockTiles: { flex: 1, gap: 8 },
+  stockTile: { flex: 1, minHeight: 56, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: '#E4E9F2', borderRadius: 10 },
+  brandPanel: { padding: 20, borderRadius: 16 },
+  brandPanelTop: { justifyContent: 'space-between', gap: 14 },
+  brandPanelLabel: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  brandTools: { flexDirection: 'row', gap: 7 },
+  brandTool: { flex: 1, minHeight: 44, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1, borderColor: '#FFFFFF55', borderRadius: 24 },
+  wordmark: { fontWeight: '700', color: '#FFFFFF', textAlign: 'center', marginTop: 16 },
   heroHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -999,8 +1037,8 @@ const s = StyleSheet.create({
   heroStats: {
     flexDirection: 'row',
     gap: 14,
-    marginTop: 24,
-    paddingTop: 18,
+    marginTop: 16,
+    paddingTop: 14,
     borderTopWidth: 1,
   },
   statValue: {
@@ -1011,14 +1049,15 @@ const s = StyleSheet.create({
   },
   primary: {
     minHeight: 44,
-    marginTop: 18,
-    borderRadius: 8,
+    marginTop: 0,
+    alignSelf: 'flex-end',
+    borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 17,
     gap: 9,
   },
-  primaryText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  primaryText: { fontSize: 12, fontWeight: '600' },
   chartPanel: { padding: 20, borderRadius: 14 },
   sectionTitle: {
     flexDirection: 'row',
@@ -1035,13 +1074,13 @@ const s = StyleSheet.create({
   segments: {
     flexDirection: 'row',
     borderRadius: 8,
-    padding: 4,
+    padding: 2,
     alignSelf: 'flex-start',
-    marginBottom: 18,
+    marginBottom: 0,
   },
   segment: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 6,
     minHeight: 44,
     alignItems: 'center',
@@ -1066,12 +1105,12 @@ const s = StyleSheet.create({
     gap: 10,
   },
   metricGrid: { flexDirection: 'row', gap: 12 },
-  metric: { padding: 20 },
+  metric: { padding: 16 },
   metricHeading: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 8,
   },
   metricLabel: { fontSize: 12, marginBottom: 5 },
   metricValue: {
@@ -1084,17 +1123,26 @@ const s = StyleSheet.create({
   quickActions: {
     flexWrap: 'wrap',
     borderRadius: 14,
+    borderWidth: 0,
     flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 7,
+    gap: 8,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
   quickAction: {
-    flex: 1,
+    flexBasis: '47%',
+    flexGrow: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    minHeight: 60,
-    paddingVertical: 4,
+    minHeight: 44,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#E4E9F2',
+    backgroundColor: '#F7F9FD',
+    borderRadius: 24,
   },
   symbol: {
     height: 32,
@@ -1103,7 +1151,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionLabel: { fontSize: 12, fontWeight: '500' },
+  actionLabel: { fontSize: 11, fontWeight: '500' },
   listPanel: { padding: 20, borderRadius: 14 },
   listRow: {
     flexDirection: 'row',

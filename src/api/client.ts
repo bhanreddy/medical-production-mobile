@@ -1,5 +1,9 @@
 import axios from 'axios';
-import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import type {
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 
 /** Matches list responses from Express routes `{ data: T[], pagination }`. */
 export interface ApiPagination {
@@ -21,12 +25,15 @@ export function extractPaginated<T>(
 import axiosRetry, { exponentialDelay, isNetworkError } from 'axios-retry';
 import { Platform } from 'react-native';
 import { SecureStorage } from '@/lib/secureStorage';
-import { authEventEmitter } from '@/lib/authEventEmitter';
+import { refreshAccessToken } from '@/lib/sessionRefresh';
 
 /* ─── Base URL ──────────────────────────────────────── */
 
 export function getApiBaseURL(): string {
-  let url = process.env.EXPO_PUBLIC_API_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
+  let url =
+    process.env.EXPO_PUBLIC_API_URL ??
+    process.env.EXPO_PUBLIC_API_BASE_URL ??
+    '';
 
   // Android emulator cannot reach the host machine through localhost/127.0.0.1.
   if (Platform.OS === 'android') {
@@ -51,10 +58,23 @@ export const apiClient = axios.create({
 /* ─── Request Interceptor ───────────────────────────── */
 
 apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
+  async (
+    config: InternalAxiosRequestConfig & { _sessionRevision?: number },
+  ) => {
+    const expected = SecureStorage.getRevision();
+    if (
+      config._sessionRevision !== undefined &&
+      config._sessionRevision !== expected
+    )
+      throw new axios.CanceledError('Session changed.');
     const token = await SecureStorage.getAccessToken();
+    if (expected !== SecureStorage.getRevision())
+      throw new axios.CanceledError('Session changed.');
+    config._sessionRevision = expected;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
     }
     return config;
   },
@@ -63,75 +83,40 @@ apiClient.interceptors.request.use(
 
 /* ─── Response Interceptor — Silent Token Refresh ───── */
 
-let isRefreshing = false;
-let refreshQueue: Array<(token: string) => void> = [];
-
-const processQueue = (newToken: string) => {
-  refreshQueue.forEach((cb) => cb(newToken));
-  refreshQueue = [];
-};
-
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const status = error.response?.status;
-    const originalRequest = error.config as
-      | (InternalAxiosRequestConfig & { _retryAfterRefresh?: boolean })
+    const original = error.config as
+      | (InternalAxiosRequestConfig & {
+          _retryAfterRefresh?: boolean;
+          _sessionRevision?: number;
+        })
       | undefined;
-
+    const path = original?.url?.split('?')[0] || '';
+    const isCredentialRequest = /\/auth\/(login|register|refresh)\/?$/.test(
+      path,
+    );
     if (
-      status === 401 &&
-      originalRequest &&
-      !originalRequest._retryAfterRefresh &&
-      originalRequest.url &&
-      !String(originalRequest.url).includes('/auth/')
+      error.response?.status !== 401 ||
+      !original ||
+      original._retryAfterRefresh ||
+      isCredentialRequest
     ) {
-      if (isRefreshing) {
-        // Queue this request until the in-flight refresh completes
-        return new Promise((resolve) => {
-          refreshQueue.push((token: string) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            resolve(apiClient(originalRequest));
-          });
-        });
-      }
-
-      originalRequest._retryAfterRefresh = true;
-      isRefreshing = true;
-
-      try {
-        const refreshToken = await SecureStorage.getRefreshToken();
-        if (!refreshToken) throw new Error('No refresh token');
-
-        const { data } = await axios.post(
-          `${baseURL}/auth/refresh`,
-          { refreshToken },
-        );
-
-        const newAccessToken: string = data.data?.accessToken ?? data.accessToken;
-        const newRefreshToken: string = data.data?.refreshToken ?? data.refreshToken ?? refreshToken;
-
-        await SecureStorage.saveTokens(newAccessToken, newRefreshToken);
-        processQueue(newAccessToken);
-
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        }
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        refreshQueue = [];
-        await SecureStorage.clearAll();
-        // Signal auth store to force logout
-        authEventEmitter.emit('LOGOUT');
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
+      return Promise.reject(error);
     }
-
-    return Promise.reject(error);
+    if (original._sessionRevision !== SecureStorage.getRevision())
+      return Promise.reject(error);
+    // Mark every request before waiting, including concurrent requests.
+    original._retryAfterRefresh = true;
+    const authorization = String(original.headers?.Authorization || '');
+    const token = await refreshAccessToken(
+      baseURL,
+      authorization.replace(/^Bearer /i, '') || undefined,
+    );
+    if (original._sessionRevision !== SecureStorage.getRevision())
+      throw new axios.CanceledError('Session changed.');
+    original.headers.Authorization = `Bearer ${token}`;
+    return apiClient(original);
   },
 );
 

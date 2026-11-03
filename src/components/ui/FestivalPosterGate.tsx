@@ -1,5 +1,7 @@
+import { Image } from 'expo-image';
+import { useGlassPreferences } from '@/components/glass/LiquidGlass';
 import React, { useEffect, useState } from 'react';
-import { Modal, View, Image, Pressable, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import { Modal, View, Pressable, Text, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { useAuthStore } from '../../stores/authStore';
 import { store } from '../../utils/storage';
 
@@ -23,13 +25,14 @@ const SUPERADMIN_API_URL = resolveSuperAdminApiUrl();
 
 const seenKey = (userId: string, posterId: string) => `festival_poster_seen:${userId}:${posterId}`;
 
-const { width: W, height: H } = Dimensions.get('window');
 
 /**
  * Festival poster popup uploaded from the SuperAdmin app. Shown at most once
  * per user per poster. Fail-silent: any error means no popup.
  */
 export function FestivalPosterGate() {
+  const { width, height } = useWindowDimensions();
+  const { reduceMotion } = useGlassPreferences();
   const user = useAuthStore((s) => s.user);
   const userId = user?.id ?? null;
   const [poster, setPoster] = useState<FestivalPoster | null>(null);
@@ -62,13 +65,15 @@ export function FestivalPosterGate() {
   if (!poster?.image_url) return null;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => setPoster(null)}>
+    <Modal visible transparent animationType={reduceMotion ? 'none' : 'fade'} onRequestClose={() => setPoster(null)}>
       <Pressable style={styles.backdrop} onPress={() => setPoster(null)}>
-        <Pressable style={styles.card} onPress={() => {}}>
+        <Pressable style={[styles.card, { width: Math.min(width - 40, 420), maxHeight: height * 0.8 }]} onPress={() => {}}>
           <Image
             source={{ uri: poster.image_url }}
-            style={styles.image}
-            resizeMode="contain"
+            style={[styles.image, { height: Math.min(height * 0.72, 560) }]}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            allowDownscaling
             onError={() => setPoster(null)}
           />
           <Pressable
@@ -93,22 +98,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
-    width: Math.min(W - 32, 420),
-    maxHeight: H * 0.8,
     borderRadius: 20,
   },
   image: {
     width: '100%',
-    height: Math.min(H * 0.72, 560),
     borderRadius: 20,
   },
   closeBtn: {
     position: 'absolute',
     top: -12,
     right: -12,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',

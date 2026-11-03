@@ -1,8 +1,4 @@
 import { EventEmitter } from 'eventemitter3';
 
-/**
- * Lightweight event bus for auth lifecycle events.
- * The API client emits 'LOGOUT' when a token refresh fails,
- * and the auth store subscribes to force a logout.
- */
+/** Token rotations update the active session without logging the operator out. */
 export const authEventEmitter = new EventEmitter();

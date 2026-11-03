@@ -17,6 +17,7 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isBooting: boolean;
+  restoreError: boolean;
 }
 
 interface AuthActions {
@@ -33,37 +34,46 @@ type AuthStore = AuthState & AuthActions;
 
 /* ─── Store ─────────────────────────────────────────── */
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
+export const useAuthStore = create<AuthStore>((set) => ({
   token: null,
   user: null,
   isAuthenticated: false,
   isBooting: true,
+  restoreError: false,
 
   hydrateAuthFromSecureStorage: async () => {
+    const expected = SecureStorage.getRevision();
     try {
       const [token, userObj] = await Promise.all([
         SecureStorage.getAccessToken(),
         SecureStorage.getUser(),
       ]);
-      if (token && userObj) {
+      if (expected !== SecureStorage.getRevision()) return false;
+      if (token) {
         set({
           token,
-          user: userObj as User,
+          user: userObj as User | null,
           isAuthenticated: true,
           isBooting: false,
+          restoreError: false,
         });
         return true;
       }
-      set({ isBooting: false });
+      set({ isBooting: false, restoreError: false });
       return false;
     } catch {
-      set({ isBooting: false });
+      if (expected !== SecureStorage.getRevision()) return false;
+      set({ isBooting: false, restoreError: true });
       return false;
     }
   },
 
   saveTokens: async (accessToken: string, refreshToken: string) => {
-    await SecureStorage.saveTokens(accessToken, refreshToken);
+    const pending = SecureStorage.saveTokens(accessToken, refreshToken);
+    const expected = SecureStorage.getRevision();
+    await pending;
+    if (expected !== SecureStorage.getRevision())
+      throw new Error('Session changed during login.');
     set({ token: accessToken, isAuthenticated: true });
   },
 
@@ -73,20 +83,28 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   setUser: (newUser: User) => {
-    void SecureStorage.saveUser(newUser);
+    void SecureStorage.saveUser(newUser).catch(() => {
+      // Keep the active session in memory if secure storage is temporarily unavailable.
+    });
     set({ user: newUser });
   },
 
   logout: () => {
-    void SecureStorage.clearAll();
-    set({ token: null, user: null, isAuthenticated: false });
+    void SecureStorage.clearAll().catch(() => {
+      // Memory is cleared synchronously; do not restore a session after manual logout.
+    });
+    set({
+      token: null,
+      user: null,
+      isAuthenticated: false,
+      restoreError: false,
+    });
   },
 }));
 
-/* ─── Listen for forced logouts from API client ─────── */
-
-authEventEmitter.on('LOGOUT', () => {
-  useAuthStore.getState().logout();
+// Refresh updates the token in place. Only explicit logout clears this store.
+authEventEmitter.on('TOKEN_REFRESHED', (token: string) => {
+  if (useAuthStore.getState().isAuthenticated) useAuthStore.setState({ token });
 });
 
 // Re-export store for backward compat with screens that imported { store } from authStore

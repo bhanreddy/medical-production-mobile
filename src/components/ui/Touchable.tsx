@@ -3,9 +3,10 @@ import { Pressable, PressableProps, StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useGlassPreferences } from '@/components/glass/LiquidGlass';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -18,11 +19,12 @@ export interface TouchableProps extends PressableProps {
 export const Touchable: React.FC<TouchableProps> = ({
   children,
   style,
-  scaleValue = 0.96,
+  scaleValue = 0.985,
   onPressIn,
   onPressOut,
   ...props
 }) => {
+  const { reduceMotion } = useGlassPreferences();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -30,12 +32,12 @@ export const Touchable: React.FC<TouchableProps> = ({
   }));
 
   const handlePressIn = (e: any) => {
-    scale.value = withSpring(scaleValue, { damping: 15, stiffness: 300 });
+    scale.value = reduceMotion || props.disabled ? 1 : withTiming(scaleValue, { duration: 100 });
     onPressIn?.(e);
   };
 
   const handlePressOut = (e: any) => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    scale.value = reduceMotion ? 1 : withTiming(1, { duration: 130 });
     onPressOut?.(e);
   };
 

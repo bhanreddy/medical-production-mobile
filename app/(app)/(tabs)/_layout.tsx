@@ -13,10 +13,11 @@ export default function TabsLayout() {
   return (
     <ErrorBoundary>
       <Tabs
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: false, lazy: true, freezeOnBlur: true }}
         tabBar={TabBar}
       >
-        <Tabs.Screen name="dashboard/index" />
+        {/* Keep the focus observer live so dashboard polling can stop on blur. */}
+        <Tabs.Screen name="dashboard/index" options={{ freezeOnBlur: false }} />
         <Tabs.Screen name="inventory/index" />
         <Tabs.Screen name="sales/index" />
         <Tabs.Screen name="patients/index" options={{ href: null }} />

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { LiquidGlassProvider } from '@/components/glass/LiquidGlass';
 import { useFonts } from 'expo-font';
 import { PlusJakartaSans_400Regular } from '@expo-google-fonts/plus-jakarta-sans/400Regular';
@@ -6,12 +7,25 @@ import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-san
 import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/700Bold';
 import { Stack } from 'expo-router';
 import { ToastProvider } from '@/components/ui/Toast';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { queryClient } from '@/api/queryClient';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { AppState, Platform, StyleSheet } from 'react-native';
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents';
+
+function QueryLifecycleProvider() {
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    focusManager.setFocused(AppState.currentState === null || AppState.currentState === 'active');
+    const subscription = AppState.addEventListener('change', state => focusManager.setFocused(state === 'active'));
+    return () => {
+      subscription.remove();
+      focusManager.setFocused(undefined);
+    };
+  }, []);
+  return null;
+}
 
 function RealtimeEventsProvider() {
   useRealtimeEvents();
@@ -31,6 +45,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <LiquidGlassProvider>
           <BottomSheetModalProvider>
+            <QueryLifecycleProvider />
             <RealtimeEventsProvider />
             <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
               <Stack.Screen name="(auth)" />

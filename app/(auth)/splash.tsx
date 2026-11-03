@@ -1,11 +1,10 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, StatusBar } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Pressable, Text, StyleSheet, StatusBar } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withDelay,
-  runOnJS,
   Easing,
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
@@ -16,7 +15,13 @@ import { useAuthStore } from '@/stores/authStore';
 
 /* ─── Medical Cross Logo ────────────────────────────── */
 
-function MedicalCross({ size = 80, color = '#FFFFFF' }: { size?: number; color?: string }) {
+function MedicalCross({
+  size = 80,
+  color = '#FFFFFF',
+}: {
+  size?: number;
+  color?: string;
+}) {
   const arm = size * 0.3; // arm width
   const offset = (size - arm) / 2;
   const r = arm * 0.2; // rounded corners
@@ -24,9 +29,25 @@ function MedicalCross({ size = 80, color = '#FFFFFF' }: { size?: number; color?:
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       {/* Vertical bar */}
-      <Rect x={offset} y={0} width={arm} height={size} rx={r} ry={r} fill={color} />
+      <Rect
+        x={offset}
+        y={0}
+        width={arm}
+        height={size}
+        rx={r}
+        ry={r}
+        fill={color}
+      />
       {/* Horizontal bar */}
-      <Rect x={0} y={offset} width={size} height={arm} rx={r} ry={r} fill={color} />
+      <Rect
+        x={0}
+        y={offset}
+        width={size}
+        height={arm}
+        rx={r}
+        ry={r}
+        fill={color}
+      />
     </Svg>
   );
 }
@@ -34,6 +55,7 @@ function MedicalCross({ size = 80, color = '#FFFFFF' }: { size?: number; color?:
 /* ─── Screen ────────────────────────────────────────── */
 
 export default function SplashScreen() {
+  const [restoreFailed, setRestoreFailed] = useState(false);
   const { theme } = useTheme();
 
   const opacity = useSharedValue(0);
@@ -42,7 +64,12 @@ export default function SplashScreen() {
   const subtitleOpacity = useSharedValue(0);
 
   const navigateAway = async () => {
+    setRestoreFailed(false);
     await useAuthStore.getState().hydrateAuthFromSecureStorage();
+    if (useAuthStore.getState().restoreError) {
+      setRestoreFailed(true);
+      return;
+    }
     const token = useAuthStore.getState().token;
     if (token) {
       router.replace('/(auth)/pin');
@@ -53,8 +80,14 @@ export default function SplashScreen() {
 
   useEffect(() => {
     // Logo fade + scale
-    opacity.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
-    scale.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
+    opacity.value = withTiming(1, {
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+    });
+    scale.value = withTiming(1, {
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+    });
 
     // App name with slight delay
     textOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
@@ -85,7 +118,10 @@ export default function SplashScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: brandBlue }]}>
-      <StatusBar barStyle="light-content" backgroundColor={brandBlue} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={brandBlue}
+      />
 
       <Animated.View style={[styles.logoContainer, logoAnimStyle]}>
         <MedicalCross size={80} color="#FFFFFF" />
@@ -104,6 +140,24 @@ export default function SplashScreen() {
         MedPOS
       </Animated.Text>
 
+      {restoreFailed && (
+        <View style={{ padding: 24, alignItems: 'center', gap: 16 }}>
+          <Text style={{ color: '#FFFFFF', textAlign: 'center' }}>
+            Your saved session couldn’t be read. Try again to continue.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void navigateAway()}
+            style={{
+              padding: 14,
+              borderRadius: 14,
+              backgroundColor: '#FFFFFF',
+            }}
+          >
+            <Text style={{ color: brandBlue }}>Try again</Text>
+          </Pressable>
+        </View>
+      )}
       <Animated.Text
         style={[
           styles.tagline,

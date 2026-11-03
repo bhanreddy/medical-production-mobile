@@ -1,15 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  interpolateColor,
-  Easing,
-} from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
-
 /* ─── Base Skeleton ─────────────────────────────────── */
 
 interface SkeletonProps {
@@ -20,28 +11,10 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ width, height, borderRadius = 8, style }: SkeletonProps) {
-  const { theme, isDark } = useTheme();
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(
-      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, []);
-
-  const baseColor = isDark ? '#1A2C3E' : '#E8ECF0';
-  const highlightColor = isDark ? '#243B53' : '#F5F7FA';
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(progress.value, [0, 1], [baseColor, highlightColor]),
-  }));
-
+  const { theme } = useTheme();
+  // Static placeholders keep large loading lists from running one infinite animation per line.
   return (
-    <Animated.View
-      style={[{ width: width as any, height, borderRadius }, animatedStyle, style]}
-    />
+    <View style={[{ width: width as any, height, borderRadius, backgroundColor: theme.colors.primaryLight }, style]} />
   );
 }
 

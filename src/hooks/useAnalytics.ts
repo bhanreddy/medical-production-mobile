@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/api/analytics';
 
-export function useRevenueTrend(period: string, range: string) {
+export function useRevenueTrend(period: string, range: string, active = true) {
   return useQuery({
+    enabled: active,
     queryKey: ['revenue-trend', period, range],
     queryFn: () => analyticsApi.getRevenueTrend(period, range),
   });

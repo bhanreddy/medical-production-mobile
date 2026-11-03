@@ -1,9 +1,12 @@
+import { mobileLayout } from '@/theme/mobileLayout';
+import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
+import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useWindowDimensions, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -13,8 +16,10 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import type { Purchase } from '@/api/purchases';
 
 export default function PurchasesIndexScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
 
   const {
     data,
@@ -40,12 +45,13 @@ export default function PurchasesIndexScreen() {
 
     return (
       <TouchableOpacity 
-        style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}
+        style={[styles.card, { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }]}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           router.push(`/(app)/purchases/${item.id}`);
         }}
       >
+        <LiquidSheen dark={isDark} />
         <View style={styles.cardHeader}>
            <Text style={{ fontFamily: theme.typography.family.semiBold, fontSize: 15, color: theme.colors.text.primary }}>
              {item.supplierName || 'Direct Purchase'}
@@ -77,7 +83,8 @@ export default function PurchasesIndexScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-       <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
+      <GlassMeshBackground />
+       <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity 
             style={[styles.backBtn, { padding: 12, marginLeft: -12, marginRight: 4 }]} 
             onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
@@ -86,18 +93,20 @@ export default function PurchasesIndexScreen() {
             <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Purchases</Text>
-       </View>
+       </LiquidPanel>
 
        <View style={styles.listContainer}>
           {isLoading && !data ? (
             <ActivityIndicator style={{ marginTop: 40 }} size="large" color={theme.colors.primary} />
           ) : (
             <FlashListAny
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
               data={purchases}
               keyExtractor={(item: Purchase) => item.id}
               estimatedItemSize={90}
               renderItem={renderPurchase}
-              contentContainerStyle={{ paddingVertical: 16 }}
+              contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 6, paddingBottom: insets.bottom + 88 }}
               onEndReached={() => {
                 if (hasNextPage && !isFetchingNextPage) {
                   fetchNextPage();
@@ -113,7 +122,7 @@ export default function PurchasesIndexScreen() {
        </View>
 
        <TouchableOpacity 
-         style={[styles.fab, { backgroundColor: theme.colors.primary, ...theme.shadow.card }]}
+         style={[styles.fab, { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: theme.colors.border }]}
          onPress={() => router.push('/(app)/purchases/add')}
        >
          <Ionicons name="add" size={28} color="#FFFFFF" />
@@ -128,7 +137,7 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: 16 },
   headerTitle: { flex: 1, fontSize: 24 },
   listContainer: { flex: 1 },
-  card: { borderRadius: 12, padding: 16, marginHorizontal: 16, marginBottom: 12 },
+  card: { borderWidth: 1, borderRadius: 14, padding: 14, marginHorizontal: 6, marginBottom: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   cardBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },

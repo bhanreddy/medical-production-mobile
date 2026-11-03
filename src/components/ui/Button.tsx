@@ -29,7 +29,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   const handlePress = () => {
     if (disabled || isLoading) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     onPress();
   };
 
@@ -55,13 +55,15 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getBorderColor = () => {
-    if (variant === 'secondary') return theme.colors.primary;
+    if (variant === 'secondary') return theme.colors.border;
     if (variant === 'ghost') return 'transparent';
-    return getBackgroundColor();
+    return variant === 'danger' ? theme.colors.danger : theme.colors.primary;
   };
 
   return (
     <Touchable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || isLoading, busy: isLoading }}
       onPress={handlePress}
       disabled={disabled || isLoading}
       style={[
@@ -69,7 +71,7 @@ export const Button: React.FC<ButtonProps> = ({
         {
           backgroundColor: getBackgroundColor(),
           borderColor: getBorderColor(),
-          borderWidth: variant === 'secondary' ? 1 : 0,
+          borderWidth: variant === 'ghost' ? 0 : 1,
           borderRadius: theme.radius.pill,
           opacity: disabled ? 0.6 : 1,
         },
@@ -82,7 +84,7 @@ export const Button: React.FC<ButtonProps> = ({
         <Text
           style={[
             styles.text,
-            { color: getTextColor(), fontFamily: theme.typography.family.semiBold, fontSize: theme.typography.size.base },
+            { color: getTextColor(), fontFamily: theme.typography.family.semiBold, fontSize: theme.typography.size.sm },
             textStyle,
           ]}
         >
@@ -95,11 +97,13 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    height: 48,
+    minHeight: 48,
+    paddingVertical: 10,
+    overflow: 'hidden',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
   },
   text: {
     textAlign: 'center',

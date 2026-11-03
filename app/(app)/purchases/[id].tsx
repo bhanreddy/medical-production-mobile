@@ -1,9 +1,10 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TextInput } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 
@@ -122,7 +123,9 @@ export default function PurchaseDetailScreen() {
          <View style={{ width: 40 }} />
        </View>
 
-       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
+          <ResponsiveGrid>
+          <View>
           {/* Header Card */}
           <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
              <View style={styles.rowBetween}>
@@ -171,6 +174,8 @@ export default function PurchaseDetailScreen() {
              ))}
           </View>
 
+          </View>
+          <View>
           {/* Totals */}
           <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
              <View style={styles.totalRow}>
@@ -214,6 +219,8 @@ export default function PurchaseDetailScreen() {
              )}
           </View>
 
+          </View>
+          </ResponsiveGrid>
        </ScrollView>
 
        {/* Update Payment Bottom Sheet */}

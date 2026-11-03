@@ -1,3 +1,5 @@
+import { LiquidPanel, useGlassPreferences } from '@/components/glass/LiquidGlass';
+import { mobileLayout } from '@/theme/mobileLayout';
 import React from 'react';
 import {
   Modal,
@@ -7,6 +9,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
+  ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,23 +41,31 @@ export function UpiPaymentSheet({
   onClose,
   onConfirmPayment,
 }: UpiPaymentSheetProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const { reduceMotion } = useGlassPreferences();
+  const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
   const visible = state !== 'closed';
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={reduceMotion ? 'none' : 'fade'} onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable
           style={[
             styles.sheet,
             {
               backgroundColor: theme.colors.surface,
+              maxHeight: height - insets.top - 24,
+              width: Math.min(width, 560),
+              alignSelf: 'center',
               paddingBottom: Math.max(insets.bottom, 16),
             },
           ]}
           onPress={e => e.stopPropagation()}
         >
+          <LiquidPanel dark={isDark} material="chrome" pointerEvents="none" style={StyleSheet.absoluteFill} />
+          <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false}>
           {state === 'missing_config' ? (
             <>
               <Text style={[styles.title, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>
@@ -62,7 +74,7 @@ export function UpiPaymentSheet({
               <Text style={[styles.body, { color: theme.colors.text.secondary }]}>
                 Save your shop UPI ID in web Settings → Payment settings, then sync and try again.
               </Text>
-              <View style={styles.actions}>
+              <View style={[styles.actions, layout.compact && { flexDirection: 'column' }]}>
                 <TouchableOpacity style={[styles.btnGhost, { borderColor: theme.colors.border }]} onPress={onClose}>
                   <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }}>Close</Text>
                 </TouchableOpacity>
@@ -90,7 +102,7 @@ export function UpiPaymentSheet({
               <Text style={[styles.hint, { color: theme.colors.text.secondary }]}>
                 Scan with GPay, PhonePe, Paytm, or BHIM
               </Text>
-              <View style={styles.actions}>
+              <View style={[styles.actions, layout.compact && { flexDirection: 'column' }]}>
                 <TouchableOpacity
                   style={[styles.btnGhost, { borderColor: theme.colors.border }]}
                   onPress={onClose}
@@ -99,19 +111,20 @@ export function UpiPaymentSheet({
                   <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.btnPrimary, { backgroundColor: theme.colors.success, opacity: isConfirming ? 0.7 : 1 }]}
+                  style={[styles.btnPrimary, { backgroundColor: theme.colors.primary, opacity: isConfirming ? 0.7 : 1 }]}
                   onPress={onConfirmPayment}
                   disabled={isConfirming}
                 >
                   {isConfirming ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={theme.colors.text.inverse} />
                   ) : (
-                    <Text style={{ color: '#fff', fontFamily: theme.typography.family.bold }}>Payment received ✓</Text>
+                    <Text style={{ color: theme.colors.text.inverse, fontFamily: theme.typography.family.bold }}>Payment received ✓</Text>
                   )}
                 </TouchableOpacity>
               </View>
             </>
           )}
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -125,8 +138,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
     paddingHorizontal: 24,
     paddingTop: 24,
     alignItems: 'center',
@@ -174,7 +188,8 @@ const styles = StyleSheet.create({
   },
   btnGhost: {
     flex: 1,
-    height: 48,
+    minHeight: 48,
+    paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
@@ -182,7 +197,8 @@ const styles = StyleSheet.create({
   },
   btnPrimary: {
     flex: 1,
-    height: 48,
+    minHeight: 48,
+    paddingVertical: 12,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',

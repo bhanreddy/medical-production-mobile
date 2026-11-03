@@ -1,3 +1,8 @@
+import { mobileLayout } from '@/theme/mobileLayout';
+import { useGlassPreferences } from '@/components/glass/LiquidGlass';
+import { LiquidPanel } from '@/components/glass/LiquidGlass';
+import { theme as lightTheme, darkTheme } from '@/theme';
+import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
 /*
  * Inventory Screen — Clean Light Design System
  * ─────────────────────────────────────────────
@@ -10,6 +15,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import {
+  useWindowDimensions,
   View,
   Text,
   StyleSheet,
@@ -21,30 +27,17 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
-import {
-  Syne_700Bold,
-  Syne_600SemiBold,
-} from '@expo-google-fonts/syne';
-import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-} from '@expo-google-fonts/plus-jakarta-sans';
 import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
   useAnimatedStyle,
   withTiming,
   useSharedValue,
-  FadeInDown,
   FadeIn,
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '@/hooks/useTheme';
 import {
@@ -70,9 +63,9 @@ const SPACING = {
 } as const;
 
 const RADIUS = {
-  chip: 20,
-  input: 14,
-  card: 16,
+  chip: 8,
+  input: 8,
+  card: 14,
   fab: 28,
   pill: 100,
 } as const;
@@ -87,32 +80,37 @@ const TYPE = {
 
 // ─── Light Design Tokens ─────────────────────────────────────────────────────
 
-const LIGHT = {
-  bg: '#F2F4F7',
-  surface: '#FFFFFF',
-  surfaceSecondary: '#F8FAFC',
-  border: 'rgba(15, 23, 42, 0.08)',
-  borderMedium: 'rgba(15, 23, 42, 0.12)',
-  textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textMuted: '#94A3B8',
-  textOnAccent: '#FFFFFF',
-  accent: '#2563EB',
-  accentLight: '#EFF6FF',
-  accentMid: '#DBEAFE',
-  danger: '#DC2626',
-  dangerLight: '#FEF2F2',
-  dangerMid: '#FECACA',
-  warning: '#D97706',
-  warningLight: '#FFFBEB',
-  warningMid: '#FDE68A',
-  success: '#16A34A',
-  successLight: '#F0FDF4',
-  amber: '#B45309',
-  amberLight: '#FFFBEB',
-  shadow: 'rgba(15, 23, 42, 0.08)',
-  shadowMd: 'rgba(15, 23, 42, 0.12)',
-} as const;
+const inventoryPalette = (dark: boolean) => {
+  const c = (dark ? darkTheme : lightTheme).colors;
+  return {
+    bg: c.background,
+    surface: c.surface,
+    surfaceSecondary: c.primaryLight,
+    border: c.border,
+    borderMedium: c.border,
+    textPrimary: c.text.primary,
+    textSecondary: c.text.secondary,
+    textMuted: c.text.secondary,
+    textOnAccent: c.text.inverse,
+    accent: c.primary,
+    accentLight: c.primaryLight,
+    accentMid: c.primaryLight,
+    danger: c.danger,
+    dangerLight: c.dangerLight,
+    dangerMid: `${c.danger}35`,
+    warning: c.warning,
+    warningLight: c.warningLight,
+    warningMid: `${c.warning}35`,
+    success: c.success,
+    successLight: c.successLight,
+    amber: c.warning,
+    amberLight: c.warningLight,
+    shadow: 'rgba(27,39,64,0.08)',
+    shadowMd: 'rgba(27,39,64,0.12)',
+  };
+};
+const LIGHT = inventoryPalette(false);
+
 
 // ─── Elevation helpers ────────────────────────────────────────────────────────
 
@@ -140,8 +138,8 @@ const elevation = (level: 'xs' | 'sm' | 'md' | 'lg'): ViewStyle => {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-function createStyles(safeTop: number, fontsReady: boolean) {
-  const display = fontsReady ? 'Syne_700Bold' : Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
+function createStyles(safeTop: number, fontsReady: boolean, LIGHT: ReturnType<typeof inventoryPalette>) {
+  const display = fontsReady ? 'PlusJakartaSans_700Bold' : Platform.select({ ios: 'System', android: 'sans-serif', default: 'sans-serif' });
   const semibold = fontsReady ? 'PlusJakartaSans_600SemiBold' : undefined;
   const medium = fontsReady ? 'PlusJakartaSans_500Medium' : undefined;
   const regular = fontsReady ? 'PlusJakartaSans_400Regular' : undefined;
@@ -330,12 +328,13 @@ function createStyles(safeTop: number, fontsReady: boolean) {
     // List
     listContent: {
       paddingTop: SPACING.sm,
+      paddingHorizontal: 6,
       paddingBottom: SPACING.xxxl + SPACING.xl,
     },
 
     // Medicine Card
     cardWrap: {
-      marginHorizontal: SPACING.md,
+      marginHorizontal: 6,
       marginBottom: SPACING.sm,
       borderRadius: RADIUS.card,
       backgroundColor: LIGHT.surface,
@@ -439,7 +438,7 @@ function createStyles(safeTop: number, fontsReady: boolean) {
     },
     h1BadgeText: {
       fontSize: TYPE.micro,
-      color: '#FFFFFF',
+      color: LIGHT.textOnAccent,
       fontFamily: semibold,
       fontWeight: '700',
       letterSpacing: 0.4,
@@ -453,7 +452,7 @@ function createStyles(safeTop: number, fontsReady: boolean) {
     // Shortbook CTA
     shortbookBtn: {
       marginTop: SPACING.sm,
-      marginHorizontal: SPACING.md,
+      marginHorizontal: 6,
       marginBottom: SPACING.md,
       height: 38,
       borderRadius: RADIUS.input,
@@ -507,7 +506,7 @@ function createStyles(safeTop: number, fontsReady: boolean) {
       alignItems: 'center',
       paddingHorizontal: SPACING.xl,
       paddingVertical: SPACING.xxl + SPACING.lg,
-      minHeight: 300,
+      minHeight: 160,
     },
     emptyIconCircle: {
       width: 68,
@@ -522,7 +521,7 @@ function createStyles(safeTop: number, fontsReady: boolean) {
     },
     emptyTitle: {
       fontSize: TYPE.lead + 2,
-      fontFamily: fontsReady ? ('Syne_600SemiBold' as const) : undefined,
+      fontFamily: fontsReady ? ('PlusJakartaSans_600SemiBold' as const) : undefined,
       fontWeight: '700',
       color: LIGHT.textPrimary,
       textAlign: 'center',
@@ -568,20 +567,16 @@ function createStyles(safeTop: number, fontsReady: boolean) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InventoryIndexScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const { reduceMotion } = useGlassPreferences();
+  const LIGHT = useMemo(() => inventoryPalette(isDark), [isDark]);
   const insets = useSafeAreaInsets();
-
-  const [fontsLoaded] = useFonts({
-    Syne_700Bold,
-    Syne_600SemiBold,
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    PlusJakartaSans_600SemiBold,
-  });
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
 
   const styles = useMemo(
-    () => createStyles(insets.top, !!fontsLoaded),
-    [insets.top, fontsLoaded]
+    () => createStyles(insets.top, true, LIGHT),
+    [insets.top, LIGHT]
   );
 
   const [activeTab, setActiveTab] = useState(0);
@@ -687,7 +682,7 @@ export default function InventoryIndexScreen() {
   const handleTabPress = (index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveTab(index);
-    indicatorPosition.value = withTiming(index, { duration: 220 });
+    indicatorPosition.value = reduceMotion ? index : withTiming(index, { duration: 180 });
     if (index === 0) {
       setSelectedChip('all');
     } else if (index === 1) {
@@ -702,16 +697,16 @@ export default function InventoryIndexScreen() {
     setSelectedChip(chip);
     if (chip === 'all') {
       setActiveTab(0);
-      indicatorPosition.value = withTiming(0, { duration: 220 });
+      indicatorPosition.value = reduceMotion ? 0 : withTiming(0, { duration: 180 });
     } else if (chip === 'low_stock') {
       setActiveTab(1);
-      indicatorPosition.value = withTiming(1, { duration: 220 });
+      indicatorPosition.value = reduceMotion ? 1 : withTiming(1, { duration: 180 });
     } else if (chip === 'expiring') {
       setActiveTab(2);
-      indicatorPosition.value = withTiming(2, { duration: 220 });
+      indicatorPosition.value = reduceMotion ? 2 : withTiming(2, { duration: 180 });
     } else if (chip === 'schedule_h1') {
       setActiveTab(0);
-      indicatorPosition.value = withTiming(0, { duration: 220 });
+      indicatorPosition.value = reduceMotion ? 0 : withTiming(0, { duration: 180 });
     }
   };
 
@@ -761,7 +756,7 @@ export default function InventoryIndexScreen() {
     }
     if (isError) {
       return (
-        <Animated.View entering={FadeIn.duration(300)} style={styles.emptyWrap}>
+        <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(200)} style={styles.emptyWrap}>
           <View style={[styles.emptyIconCircle, { backgroundColor: LIGHT.dangerLight, borderColor: LIGHT.dangerMid }]}>
             <Ionicons name="alert-circle-outline" size={28} color={LIGHT.danger} />
           </View>
@@ -784,7 +779,7 @@ export default function InventoryIndexScreen() {
     };
     const c = copy[tab];
     return (
-      <Animated.View entering={FadeIn.duration(300)} style={styles.emptyWrap}>
+      <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(200)} style={styles.emptyWrap}>
         <View style={styles.emptyIconCircle}>
           <Ionicons name={c.icon} size={28} color={LIGHT.accent} />
         </View>
@@ -801,7 +796,7 @@ export default function InventoryIndexScreen() {
     const borderOverride = cardBorderStyle(item);
 
     return (
-      <Animated.View entering={FadeInDown.delay(Math.min(index, 10) * 40).duration(280)}>
+      <Animated.View >
         <TouchableOpacity
           activeOpacity={0.88}
           style={[styles.cardWrap, borderOverride]}
@@ -884,7 +879,7 @@ export default function InventoryIndexScreen() {
     const borderKey = expBorderStyle(days);
 
     return (
-      <Animated.View entering={FadeInDown.delay(Math.min(index, 10) * 40).duration(280)}>
+      <Animated.View >
         <TouchableOpacity
           activeOpacity={0.88}
           style={[styles.cardWrap, borderKey ? styles[borderKey] : null]}
@@ -911,10 +906,11 @@ export default function InventoryIndexScreen() {
 
   return (
     <View style={styles.root}>
+      <GlassMeshBackground />
       <StatusBar style="dark" />
 
       {/* ── Header ── */}
-      <View style={styles.header}>
+      <LiquidPanel dark={isDark} variant="header" style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <View style={styles.headerTitleGroup}>
@@ -994,7 +990,7 @@ export default function InventoryIndexScreen() {
 
         {/* Summary chips */}
         {summaryData && (
-          <Animated.View entering={FadeIn.duration(300)}>
+          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(200)}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1011,7 +1007,7 @@ export default function InventoryIndexScreen() {
             </ScrollView>
           </Animated.View>
         )}
-      </View>
+      </LiquidPanel>
 
       {/* ── Tab Bar ── */}
       <View style={styles.tabBarWrap}>
@@ -1034,10 +1030,11 @@ export default function InventoryIndexScreen() {
 
       {/* ── List ── */}
       {activeTab === 0 && (
-        <FlashListAny
+        <FlashList
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
           data={processedAllMedicines}
           keyExtractor={(item: any) => item.id}
-          estimatedItemSize={90}
           renderItem={({ item, index = 0 }: { item: Medicine; index?: number }) =>
             renderMedicineCard(item, false, index)
           }
@@ -1046,16 +1043,17 @@ export default function InventoryIndexScreen() {
               <Text style={styles.sectionLabel}>{processedAllMedicines?.length} results</Text>
             ) : null
           }
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: layout.scrollBottom }]}
           ListEmptyComponent={() => listEmpty(isLoading, isError, 0)}
         />
       )}
 
       {activeTab === 1 && (
-        <FlashListAny
+        <FlashList
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
           data={processedLowStock}
           keyExtractor={(item: any) => item.id}
-          estimatedItemSize={120}
           renderItem={({ item, index = 0 }: { item: Medicine; index?: number }) =>
             renderMedicineCard(item, true, index)
           }
@@ -1064,16 +1062,17 @@ export default function InventoryIndexScreen() {
               <Text style={styles.sectionLabel}>{processedLowStock?.length} items below reorder level</Text>
             ) : null
           }
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: layout.scrollBottom }]}
           ListEmptyComponent={() => listEmpty(isLoading, isError, 1)}
         />
       )}
 
       {activeTab === 2 && (
-        <FlashListAny
+        <FlashList
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
           data={processedExpiringBatches}
           keyExtractor={(item: any) => item.id}
-          estimatedItemSize={80}
           renderItem={({ item, index = 0 }: { item: MedicineBatch; index?: number }) =>
             renderExpiringCard(item, index)
           }
@@ -1082,18 +1081,20 @@ export default function InventoryIndexScreen() {
               <Text style={styles.sectionLabel}>{processedExpiringBatches?.length} batches expiring in 90 days</Text>
             ) : null
           }
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: layout.scrollBottom }]}
           ListEmptyComponent={() => listEmpty(isLoading, isError, 2)}
         />
       )}
 
       {/* ── FAB ── */}
       <TouchableOpacity
-        style={styles.fab}
+        accessibilityRole="button"
+        accessibilityLabel="Add medicine"
+        style={[styles.fab, { bottom: layout.scrollBottom }]}
         onPress={() => router.push('/(app)/inventory/add')}
         activeOpacity={0.88}
       >
-        <Ionicons name="add" size={26} color="#FFFFFF" />
+        <Ionicons name="add" size={26} color={LIGHT.textOnAccent} />
       </TouchableOpacity>
     </View>
   );

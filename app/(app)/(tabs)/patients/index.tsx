@@ -1,10 +1,11 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, ActivityIndicator, Animated } from 'react-native';
+import { mobileLayout } from '@/theme/mobileLayout';
+import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useWindowDimensions, View, Text, StyleSheet, TextInput, ActivityIndicator, Animated } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -20,13 +21,19 @@ import type { Customer } from '@/api/customers';
 const FILTERS = ['All', 'High Value', 'At Risk', 'With Balance'];
 
 export default function PatientsIndexScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => () => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+  }, []);
 
   const bottomSheetRef = useRef<GorhomBottomSheet>(null);
 
@@ -124,10 +131,11 @@ export default function PatientsIndexScreen() {
         friction={2}
       >
         <TouchableOpacity 
-          style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}
+          style={[styles.card, { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }]}
           onPress={() => handlePatientPress(item.id)}
           activeOpacity={0.9}
         >
+          <LiquidSheen dark={isDark} />
           <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
             <Text style={[styles.avatarText, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>
               {getInitials(item.name)}
@@ -182,7 +190,7 @@ export default function PatientsIndexScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <GlassMeshBackground />
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.headerTop}>
           <View>
             <Text style={[styles.title, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Patients</Text>
@@ -225,26 +233,27 @@ export default function PatientsIndexScreen() {
               ]}
             >
               <Text style={{ 
-                color: activeFilter === f ? '#FFF' : theme.colors.text.secondary,
+                color: activeFilter === f ? theme.colors.text.inverse : theme.colors.text.secondary,
                 fontFamily: activeFilter === f ? theme.typography.family.semiBold : theme.typography.family.regular,
                 fontSize: 13
               }}>{f}</Text>
             </TouchableOpacity>
           ))}
         </View>
-      </View>
+      </LiquidPanel>
 
       {/* List */}
       <View style={styles.listContainer}>
         {isLoading && !data ? (
           <ActivityIndicator style={{ marginTop: 40 }} size="large" color={theme.colors.primary} />
         ) : (
-          <FlashListAny
+          <FlashList
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
             data={customers}
             keyExtractor={(item: Customer) => item.id}
-            estimatedItemSize={90}
             renderItem={renderPatientCard}
-            contentContainerStyle={{ paddingVertical: 12 }}
+            contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 6, paddingBottom: layout.scrollBottom }}
             onEndReached={() => {
               if (hasNextPage && !isFetchingNextPage) {
                 fetchNextPage();
@@ -259,7 +268,7 @@ export default function PatientsIndexScreen() {
       </View>
 
       <TouchableOpacity 
-        style={[styles.fab, { backgroundColor: theme.colors.primary, ...theme.shadow.card }]}
+        style={[styles.fab, { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: theme.colors.border }]}
         onPress={() => router.push('/(app)/patients/add')}
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
@@ -286,16 +295,16 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: 16, paddingBottom: 12, borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 28 },
+  title: { fontSize: 24 },
   subtitle: { fontSize: 14, marginTop: 2 },
   bellBtn: { position: 'relative', padding: 4 },
   bellBadge: { position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
   searchBar: { flexDirection: 'row', alignItems: 'center', height: 48, borderRadius: 12, paddingHorizontal: 12, marginBottom: 16 },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 16 },
   filterRow: { flexDirection: 'row', gap: 8 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   listContainer: { flex: 1 },
-  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 16, marginHorizontal: 16, marginBottom: 10 },
+  card: { borderWidth: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 14, marginHorizontal: 6, marginBottom: 10 },
   avatar: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   avatarText: { fontSize: 18 },
   centerCol: { flex: 1 },

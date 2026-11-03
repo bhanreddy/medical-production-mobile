@@ -1,9 +1,12 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
+import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
+import { LiquidPanel } from '@/components/glass/LiquidGlass';
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Linking, Pressable, Switch, useWindowDimensions } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -13,11 +16,17 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUIStore } from '@/stores/uiStore';
 import { getInitials } from '@/utils/format';
 import { BottomSheet } from '@/components/ui/BottomSheet';
+import { mobileLayout } from '@/theme/mobileLayout';
 import { clinicApi } from '@/api/clinic';
 
 export default function SettingsScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
+  const glassMode = useUIStore(s => s.glassMode);
+  const setGlassMode = useUIStore(s => s.setGlassMode);
+  const toggleTheme = useUIStore(s => s.toggleTheme);
   const qc = useQueryClient();
   const addToast = useUIStore(s => s.addToast);
 
@@ -88,7 +97,8 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <GlassMeshBackground />
+      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface }]}>
          <TouchableOpacity 
            onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
            style={{ padding: 12, marginLeft: -12, marginRight: 4 }} 
@@ -97,12 +107,14 @@ export default function SettingsScreen() {
            <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
          </TouchableOpacity>
          <Text style={{ fontSize: 24, fontFamily: theme.typography.family.bold, color: theme.colors.text.primary }}>Settings</Text>
-      </View>
+      </LiquidPanel>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ padding: layout.gutter, paddingBottom: insets.bottom + 32, width: '100%', maxWidth: 1240, alignSelf: 'center' }} showsVerticalScrollIndicator={false}>
 
+        <ResponsiveGrid>
+        <View>
         {/* Profile Section */}
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border }]}>
+        <LiquidPanel dark={isDark} style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border }]}>
            <View style={[styles.avatarContainer, { borderColor: theme.colors.primary + '30' }]}>
              <View style={[styles.avatarLg, { backgroundColor: theme.colors.primaryLight }]}>
                <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.family.bold, fontSize: 30 }}>
@@ -116,11 +128,35 @@ export default function SettingsScreen() {
              <Ionicons name="shield-checkmark-outline" size={14} color={theme.colors.primary} />
              <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.family.bold, fontSize: 12 }}>{userRole.toUpperCase()}</Text>
            </View>
-        </View>
+        </LiquidPanel>
 
+        <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>APPEARANCE</Text>
+        <LiquidPanel dark={isDark} style={[styles.card, { padding: 18 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold, fontSize: 15 }}>Dark appearance</Text>
+              <Text style={{ color: theme.colors.text.secondary, fontSize: 13, marginTop: 4 }}>A softer view after hours.</Text>
+            </View>
+            <Switch accessibilityLabel="Dark appearance" value={isDark} onValueChange={toggleTheme} thumbColor="#FFFFFF" trackColor={{ false: theme.colors.border, true: '#2457E6' }} />
+          </View>
+          <View style={{ height: 1, backgroundColor: theme.colors.border, marginVertical: 18 }} />
+          <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold, fontSize: 15 }}>Motion</Text>
+          <Text style={{ color: theme.colors.text.secondary, fontSize: 13, lineHeight: 19, marginTop: 5, marginBottom: 14 }}>Choose reduced motion for simpler transitions.</Text>
+          <View style={{ flexDirection: layout.largeText ? 'column' : 'row', gap: 8 }}>
+            {(['adaptive', 'lightweight'] as const).map(mode => (
+              <Pressable key={mode} accessibilityRole="radio" accessibilityState={{ checked: glassMode === mode }} onPress={() => setGlassMode(mode)}
+                style={{ flex: layout.largeText ? undefined : 1, minHeight: 48, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: glassMode === mode ? theme.colors.primary : theme.colors.border, backgroundColor: glassMode === mode ? theme.colors.primaryLight : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: glassMode === mode ? theme.colors.primary : theme.colors.text.secondary, fontFamily: theme.typography.family.semiBold, fontSize: 14 }}>{mode === 'adaptive' ? 'Standard motion' : 'Reduced motion'}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </LiquidPanel>
+
+        </View>
+        <View>
         {/* Legal Details */}
         <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>LEGAL DETAILS</Text>
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: theme.colors.border }]}>
+        <LiquidPanel dark={isDark} style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: theme.colors.border }]}>
            <View style={styles.detailRow}>
              <View style={styles.detailLeft}>
                <View style={[styles.iconContainer, { backgroundColor: theme.colors.primaryLight }]}>
@@ -156,11 +192,11 @@ export default function SettingsScreen() {
                </View>
              </View>
            </View>
-        </View>
+        </LiquidPanel>
 
         {/* Data */}
         <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>DATA</Text>
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, gap: 0, padding: 0, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden' }]}>
+        <LiquidPanel dark={isDark} style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, gap: 0, padding: 0, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden' }]}>
            <TouchableOpacity style={[styles.menuRow, { borderBottomColor: theme.colors.border }]} onPress={handleExport}>
              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                <View style={[styles.menuIconContainer, { backgroundColor: theme.colors.primaryLight }]}>
@@ -179,7 +215,7 @@ export default function SettingsScreen() {
              </View>
              {isSyncing ? <ActivityIndicator size="small" color={theme.colors.primary} /> : <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />}
            </TouchableOpacity>
-        </View>
+        </LiquidPanel>
 
         {/* Sign Out */}
         <Text style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}>ACCOUNT</Text>
@@ -199,9 +235,11 @@ export default function SettingsScreen() {
            <Text style={{ marginLeft: 12, fontFamily: theme.typography.family.semiBold, color: theme.colors.danger, fontSize: 15 }}>Sign Out</Text>
         </TouchableOpacity>
 
+        </View>
+        </ResponsiveGrid>
         {/* App Info */}
-        <Text style={{ textAlign: 'center', color: theme.colors.text.tertiary, fontSize: 12, marginTop: 24 }}>
-          MedPOS v1.1.0 • Built with Expo
+        <Text style={{ textAlign: 'center', color: theme.colors.text.tertiary, fontSize: 12, marginTop: 12 }}>
+          Nexsyrus v1.1.0
         </Text>
       </ScrollView>
 
@@ -238,7 +276,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 16, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.05)' },
-  card: { borderRadius: 16, padding: 20, marginBottom: 16 },
+  card: { borderRadius: 16, padding: 16, marginBottom: 12 },
   avatarContainer: {
     padding: 4,
     borderRadius: 48,

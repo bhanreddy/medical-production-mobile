@@ -27,46 +27,46 @@ export interface ThemeColors {
 }
 
 const lightColors: ThemeColors = {
-  primary: '#0066CC',
-  primaryLight: '#E6F1FB',
-  accent: '#00B897',
-  accentLight: '#E1F5EE',
-  danger: '#E53E3E',
-  dangerLight: '#FCEBEB',
-  warning: '#F6AD55',
-  warningLight: '#FAEEDA',
-  success: '#38A169',
-  successLight: '#EAF3DE',
-  background: '#F7F9FC',
+  primary: '#2457E6',
+  primaryLight: '#EDF2FF',
+  accent: '#735396',
+  accentLight: '#F3EDF8',
+  danger: '#B63D60',
+  dangerLight: '#FFF0F4',
+  warning: '#94630B',
+  warningLight: '#FFF6DC',
+  success: '#267552',
+  successLight: '#EDF8F1',
+  background: '#FFFFFF',
   surface: '#FFFFFF',
-  border: 'rgba(0,0,0,0.08)',
+  border: '#E4E9F2',
   text: {
-    primary: '#0D1B2A',
-    secondary: '#64748B',
+    primary: '#182338',
+    secondary: '#657087',
     tertiary: '#94A3B8',
     inverse: '#FFFFFF',
   },
 };
 
 const darkColors: ThemeColors = {
-  primary: '#378ADD',
-  primaryLight: '#0C447C',
-  accent: '#1D9E75',
-  accentLight: '#085041',
-  danger: '#FC6B6B',
-  dangerLight: '#3D1F1F',
-  warning: '#FFB870',
-  warningLight: '#3D2F1A',
-  success: '#5AD88C',
-  successLight: '#1F3D24',
-  background: '#0D1B2A',
-  surface: '#1A2C3E',
-  border: 'rgba(255,255,255,0.08)',
+  primary: '#9DB7FF',
+  primaryLight: '#24324A',
+  accent: '#BAA6DC',
+  accentLight: '#352E4C',
+  danger: '#DC94A9',
+  dangerLight: '#422C3B',
+  warning: '#DAB880',
+  warningLight: '#3C3428',
+  success: '#85B8A0',
+  successLight: '#253D37',
+  background: '#121B2C',
+  surface: '#1A263B',
+  border: '#354159',
   text: {
-    primary: '#F0F4F8',
-    secondary: '#94A3B8',
+    primary: '#F2F5FC',
+    secondary: '#A9B5C9',
     tertiary: '#64748B',
-    inverse: '#0D1B2A',
+    inverse: '#121B2C',
   },
 };
 
@@ -74,20 +74,20 @@ const darkColors: ThemeColors = {
 
 const typography = {
   family: {
-    regular: 'Inter_400Regular',
-    medium: 'Inter_500Medium',
-    semiBold: 'Inter_600SemiBold',
-    bold: 'Inter_700Bold',
+    regular: 'PlusJakartaSans_400Regular',
+    medium: 'PlusJakartaSans_500Medium',
+    semiBold: 'PlusJakartaSans_600SemiBold',
+    bold: 'PlusJakartaSans_700Bold',
   },
   size: {
     xs: 11,
     sm: 13,
-    base: 15,
-    lg: 17,
-    xl: 20,
-    xxl: 24,
-    xxxl: 28,
-    display: 34,
+    base: 14,
+    lg: 16,
+    xl: 18,
+    xxl: 22,
+    xxxl: 26,
+    display: 32,
   },
 } as const;
 
@@ -98,8 +98,8 @@ const spacing = {
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 20,
-  xxl: 24,
+  xl: 18,
+  xxl: 22,
   xxxl: 32,
   huge: 48,
 } as const;
@@ -108,9 +108,9 @@ const spacing = {
 
 const radius = {
   input: 8,
-  card: 12,
+  card: 14,
   modal: 16,
-  pill: 24,
+  pill: 8,
 } as const;
 
 /* ─── Shadows ───────────────────────────────────────── */
@@ -124,25 +124,34 @@ const shadow: Record<'card' | 'modal' | 'fab', ShadowStyle> = {
   card: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0.035,
+    shadowRadius: 5,
+    elevation: 1,
   },
   modal: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
   fab: {
-    shadowColor: '#0066CC',
+    shadowColor: '#2457E6',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 5,
   },
 };
+
+/** Compatibility tokens for existing callers; all workspace surfaces are opaque. */
+const buildGlassMaterial = (dark: boolean) => {
+  const c = dark ? darkColors : lightColors;
+  return { panel: c.surface, edge: c.border, sheen: [c.surface, c.surface, c.surface] as [string, string, string] };
+};
+const lightGlass = buildGlassMaterial(false);
+const darkGlass = buildGlassMaterial(true);
+export const glassMaterial = (dark: boolean) => dark ? darkGlass : lightGlass;
 
 /* ─── Theme Assembly ────────────────────────────────── */
 

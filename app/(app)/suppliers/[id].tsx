@@ -1,9 +1,10 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 
@@ -79,7 +80,9 @@ export default function SupplierDetailScreen() {
            <View style={{ width: 40 }} />
          </View>
 
-         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
+            <ResponsiveGrid>
+            <View>
             {/* Header Box */}
             <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, alignItems: 'center' }]}>
                <View style={[styles.avatarLg, { backgroundColor: theme.colors.accentLight }]}>
@@ -111,6 +114,8 @@ export default function SupplierDetailScreen() {
             </View>
 
             {/* Outstanding Balance */}
+            </View>
+            <View>
             <Text style={styles.sectionTitle}>Outstanding Ledger</Text>
             <View style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card, padding: 20 }]}>
                <View style={styles.rowBetween}>
@@ -150,6 +155,8 @@ export default function SupplierDetailScreen() {
                  <Text style={{ color: theme.colors.text.tertiary, padding: 8, textAlign: 'center' }}>No outstanding bills.</Text>
                )}
             </View>
+            </View>
+            </ResponsiveGrid>
          </ScrollView>
 
          <BottomSheet ref={paymentSheetRef} snapPoints={['45%']} title="Record Payment">
@@ -185,7 +192,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerLite: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.05)' },
-  card: { borderRadius: 16, padding: 16, marginBottom: 20 },
+  card: { borderRadius: 16, padding: 16, marginBottom: 12 },
   avatarLg: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center' },
   infoBlock: { flex: 1, alignItems: 'center', paddingVertical: 8 },
   sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8, marginLeft: 4, opacity: 0.8 },

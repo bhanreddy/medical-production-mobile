@@ -1,8 +1,9 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity,ActivityIndicator, Switch } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -131,6 +132,7 @@ export default function AddMedicineScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
            
+           <ResponsiveGrid columns={3}>
            {/* Master Search Autocomplete Field */}
            <View style={{ zIndex: 10 }}>
               <FloatingInput label="Medicine Name *" value={name} onChangeText={handleNameChange} />
@@ -156,6 +158,9 @@ export default function AddMedicineScreen() {
            <FloatingInput label="Generic Name" value={genericName} onChangeText={setGenericName} />
            <FloatingInput label="Manufacturer" value={manufacturer} onChangeText={setManufacturer} />
            
+           </ResponsiveGrid>
+           <ResponsiveGrid>
+           <View>
            {/* Category Options */}
            <Text style={[styles.sectionHeading, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>Category</Text>
            <View style={styles.pillBox}>
@@ -166,6 +171,8 @@ export default function AddMedicineScreen() {
               ))}
            </View>
 
+           </View>
+           <View>
            {/* GST Options */}
            <Text style={[styles.sectionHeading, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>GST Rate</Text>
            <View style={styles.pillBox}>
@@ -176,6 +183,8 @@ export default function AddMedicineScreen() {
               ))}
            </View>
 
+           </View>
+           </ResponsiveGrid>
            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
               <View style={{ flex: 1 }}>
                  <FloatingInput label="HSN Code" value={hsnCode} onChangeText={setHsnCode} />
@@ -185,6 +194,7 @@ export default function AddMedicineScreen() {
               </View>
            </View>
 
+           <ResponsiveGrid>
            {/* Reorder Level */}
            <View style={[styles.reorderRow, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
              <View>
@@ -207,6 +217,7 @@ export default function AddMedicineScreen() {
              <Switch value={isScheduleH1} onValueChange={val => { Haptics.selectionAsync(); setIsScheduleH1(val); }} trackColor={{ true: theme.colors.danger, false: theme.colors.border }} />
            </View>
 
+           </ResponsiveGrid>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -232,7 +243,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 0.5 },
   backBtn: { marginRight: 16 },
   headerTitle: { fontSize: 18 },
-  scrollContent: { padding: 16, paddingBottom: 60 },
+  scrollContent: { padding: 16, paddingBottom: 20 },
   suggestionBox: { position: 'absolute', top: 56, left: 0, right: 0, zIndex: 100, borderRadius: 12, borderWidth: 0.5, overflow: 'hidden' },
   suggestionItem: { padding: 12, borderBottomWidth: 0.5 },
   sectionHeading: { fontSize: 15, marginBottom: 12, marginTop: 12 },

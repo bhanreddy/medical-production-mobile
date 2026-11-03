@@ -6,8 +6,18 @@ const KEYS = {
   USER: 'med_pos_user',
 } as const;
 
+let rememberSession = true;
+let volatileTokens: { accessToken: string; refreshToken: string } | null = null;
+let volatileUser: object | null = null;
+
 export const SecureStorage = {
+  /** Unchecked Remember me retains credentials only until this app process ends. */
+  async setSessionPersistence(remember: boolean): Promise<void> {
+    await SecureStorage.clearAll();
+    rememberSession = remember;
+  },
   async saveTokens(accessToken: string, refreshToken: string): Promise<void> {
+    if (!rememberSession) { volatileTokens = { accessToken, refreshToken }; return; }
     try {
       await SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken);
       await SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken);
@@ -17,6 +27,7 @@ export const SecureStorage = {
   },
 
   async getAccessToken(): Promise<string | null> {
+    if (!rememberSession) return volatileTokens?.accessToken ?? null;
     try {
       return await SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
     } catch {
@@ -25,6 +36,7 @@ export const SecureStorage = {
   },
 
   async getRefreshToken(): Promise<string | null> {
+    if (!rememberSession) return volatileTokens?.refreshToken ?? null;
     try {
       return await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
     } catch {
@@ -33,6 +45,7 @@ export const SecureStorage = {
   },
 
   async saveUser(user: object): Promise<void> {
+    if (!rememberSession) { volatileUser = user; return; }
     try {
       await SecureStore.setItemAsync(KEYS.USER, JSON.stringify(user));
     } catch {
@@ -41,6 +54,7 @@ export const SecureStorage = {
   },
 
   async getUser(): Promise<object | null> {
+    if (!rememberSession) return volatileUser;
     try {
       const raw = await SecureStore.getItemAsync(KEYS.USER);
       if (!raw) return null;
@@ -51,6 +65,8 @@ export const SecureStorage = {
   },
 
   async clearAll(): Promise<void> {
+    volatileTokens = null;
+    volatileUser = null;
     try {
       await SecureStore.deleteItemAsync(KEYS.ACCESS_TOKEN);
     } catch { /* ignore */ }

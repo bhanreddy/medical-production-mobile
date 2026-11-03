@@ -15,11 +15,13 @@ export interface Toast {
 
 interface UIState {
   isDark: boolean;
+  glassMode: 'adaptive' | 'lightweight';
   toasts: Toast[];
 }
 
 interface UIActions {
   toggleTheme: () => void;
+  setGlassMode: (mode: UIState['glassMode']) => void;
   addToast: (message: string, type?: ToastType) => void;
   removeToast: (id: string) => void;
   /** @deprecated Legacy alias for addToast */
@@ -33,7 +35,7 @@ type UIStore = UIState & UIActions;
 /* ─── Constants ─────────────────────────────────────── */
 
 const THEME_KEY = 'ui_dark_mode';
-const TOAST_DURATION_MS = 3000;
+const GLASS_KEY = 'ui_glass_mode';
 
 /* ─── Store ─────────────────────────────────────────── */
 
@@ -44,11 +46,8 @@ export const useUIStore = create<UIStore>((set) => {
 
     set((state) => ({ toasts: [...state.toasts, toast] }));
 
-    setTimeout(() => {
-      set((state) => ({
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
-    }, TOAST_DURATION_MS);
+    // The provider starts the duration when this message becomes visible.
+    // Queued messages must not expire before the operator can read them.
   };
 
   const removeToastFn = (id: string) =>
@@ -58,6 +57,11 @@ export const useUIStore = create<UIStore>((set) => {
 
   return {
     isDark: store.getString(THEME_KEY) === 'true',
+    glassMode: store.getString(GLASS_KEY) === 'lightweight' ? 'lightweight' : 'adaptive',
+    setGlassMode: (glassMode) => {
+      store.set(GLASS_KEY, glassMode);
+      set({ glassMode });
+    },
     toasts: [],
 
     toggleTheme: () =>

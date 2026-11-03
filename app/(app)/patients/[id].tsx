@@ -1,3 +1,4 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Linking, TextInput } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
@@ -5,7 +6,7 @@ import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 
@@ -106,7 +107,7 @@ export default function PatientDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }} bounces={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} bounces={false}>
          {/* Profile Banner */}
          <View style={[styles.bannerCard, { backgroundColor: theme.colors.primaryLight, paddingTop: insets.top + 16 }]}>
             <TouchableOpacity 
@@ -173,8 +174,9 @@ export default function PatientDetailScreen() {
            </View>
          )}
 
+         <ResponsiveGrid>
          {/* Quick Actions */}
-         <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
+         <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>Quick Actions</Text>
            <View style={styles.quickActionsRow}>
               <TouchableOpacity style={[styles.qaBtn, { borderColor: theme.colors.primary }]} onPress={handleNewSale}>
@@ -189,7 +191,7 @@ export default function PatientDetailScreen() {
          </View>
 
          {/* Purchase History */}
-         <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
+         <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold, marginBottom: 0 }]}>Purchase History</Text>
                <TouchableOpacity><Text style={{ color: theme.colors.primary, fontSize: 13 }}>View All</Text></TouchableOpacity>
@@ -207,6 +209,7 @@ export default function PatientDetailScreen() {
               )}
             </View>
          </View>
+         </ResponsiveGrid>
       </ScrollView>
 
       {/* Record Payment Bottom Sheet */}

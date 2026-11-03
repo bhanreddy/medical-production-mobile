@@ -1,8 +1,9 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -93,6 +94,7 @@ export default function AddPatientScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
            
+           <ResponsiveGrid columns={3}>
            <FloatingInput 
              label="Full Name *" 
              value={name} 
@@ -117,6 +119,7 @@ export default function AddPatientScreen() {
              rightIcon={<Ionicons name="mail-outline" size={20} color={theme.colors.text.tertiary} />}
            />
            
+           </ResponsiveGrid>
            <Text style={[styles.sectionHeading, { color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold }]}>Billing Information</Text>
 
            <FloatingInput 
@@ -168,7 +171,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 0.5 },
   backBtn: { marginRight: 16 },
   headerTitle: { fontSize: 18 },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { padding: 16, paddingBottom: 20 },
   sectionHeading: { fontSize: 15, marginBottom: 16, marginTop: 12 },
   footer: { padding: 16, borderTopWidth: 0.5 },
   saveBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }

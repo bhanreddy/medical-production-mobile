@@ -1,10 +1,11 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -111,6 +112,8 @@ export default function InventoryDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+         <ResponsiveGrid>
+         <View>
          {/* Medicine Info Card */}
          <View style={[styles.infoCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
             {medicine.schedule === 'H1' && (
@@ -166,6 +169,8 @@ export default function InventoryDetailScreen() {
             </TouchableOpacity>
          </View>
 
+         </View>
+         <View>
          {/* Active Batches */}
          <View style={styles.batchesSection}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
@@ -190,6 +195,8 @@ export default function InventoryDetailScreen() {
               <Text style={{ color: theme.colors.text.secondary, textAlign: 'center', padding: 20 }}>No active batches</Text>
             )}
          </View>
+         </View>
+         </ResponsiveGrid>
       </ScrollView>
     </View>
   );
@@ -202,7 +209,7 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: 16 },
   headerTitle: { flex: 1, fontSize: 18 },
   editBtn: { paddingLeft: 16 },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { padding: 16, paddingBottom: 24 },
   infoCard: { borderRadius: 16, padding: 20, marginBottom: 16, position: 'relative', overflow: 'hidden' },
   h1Badge: { position: 'absolute', top: 0, right: 0, paddingHorizontal: 12, paddingVertical: 4, borderBottomLeftRadius: 16 },
   h1Text: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
@@ -212,11 +219,11 @@ const styles = StyleSheet.create({
   infoCol: { width: '30%', marginBottom: 12 },
   infoLabel: { fontSize: 11, marginBottom: 4 },
   infoValue: { fontSize: 13, fontWeight: '500' },
-  stockOverview: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  stockOverview: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   metricTile: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center' },
   metricLabel: { fontSize: 11, marginBottom: 4 },
   metricValue: { fontSize: 20, fontWeight: 'bold' },
-  actionsRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  actionsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   actionBtn: { flex: 1, height: 40, borderWidth: 1, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   batchesSection: { flex: 1 },
   badgePill: { marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },

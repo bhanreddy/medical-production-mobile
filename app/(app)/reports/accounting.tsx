@@ -1,12 +1,13 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React, { useState, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
-import { LinearGradient } from 'expo-linear-gradient';
+
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 
 import { useAccountingSummary } from '@/hooks/useAccounting';
@@ -293,17 +294,9 @@ Generated automatically by M-POS`;
           </TouchableOpacity>
        </View>
 
-       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
           {/* Net Profit / Loss Hero Card */}
-          <LinearGradient
-             colors={isPositiveProfit 
-                ? [theme.colors.success, '#2E7D32'] 
-                : [theme.colors.danger, '#C62828']
-             }
-             start={{ x: 0, y: 0 }}
-             end={{ x: 1, y: 1 }}
-             style={[styles.heroCard, theme.shadow.card]}
-          >
+          <View style={[styles.heroCard, { backgroundColor: isPositiveProfit ? '#267552' : '#B63D60' }]}>
              <View style={styles.heroHeader}>
                 <View>
                    <Text style={styles.heroSubtitle}>NET PROFIT / LOSS</Text>
@@ -330,8 +323,10 @@ Generated automatically by M-POS`;
                    <Text style={styles.heroStatValue}>{formatCurrency(summary.totalExpenses + summary.totalReturns)}</Text>
                 </View>
              </View>
-          </LinearGradient>
+          </View>
 
+          <ResponsiveGrid>
+          <View>
           {/* Income Statement Detailed Breakdown */}
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Profit & Loss Statement</Text>
           <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }]}>
@@ -411,8 +406,10 @@ Generated automatically by M-POS`;
              </View>
           </View>
 
+          </View>
+          <View>
           {/* Balance Position */}
-          <Text style={[styles.sectionTitle, { marginTop: 24, color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Balance Positions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Balance Positions</Text>
           <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, paddingVertical: 4, paddingHorizontal: 0 }]}>
              <TouchableOpacity 
                 style={[styles.balanceItem, { borderBottomWidth: 1, borderBottomColor: theme.colors.border }]}
@@ -466,6 +463,8 @@ Generated automatically by M-POS`;
                 <Text style={{ fontFamily: theme.typography.family.bold, color: theme.colors.primary, fontSize: 16 }}>{formatCurrency(summary.cashInHand)}</Text>
              </View>
           </View>
+          </View>
+          </ResponsiveGrid>
        </ScrollView>
 
        <BottomSheet ref={filterSheetRef} snapPoints={['85%']} title="Filter Report">
@@ -643,25 +642,17 @@ Generated automatically by M-POS`;
                   disabled={tempPreset === 'custom' && (!tempFrom || !tempTo)}
                   activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={tempPreset === 'custom' && (!tempFrom || !tempTo)
-                      ? [isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0']
-                      : [theme.colors.primary, '#0052A3']
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[styles.modalBtn, { width: '100%' }]}
-                  >
+                  <View style={[styles.modalBtn, { width: '100%', backgroundColor: theme.colors.primary, opacity: tempPreset === 'custom' && (!tempFrom || !tempTo) ? 0.5 : 1 }]}>
                     <Text 
                       style={{ 
-                        color: tempPreset === 'custom' && (!tempFrom || !tempTo) ? theme.colors.text.tertiary : '#FFF', 
+                        color: tempPreset === 'custom' && (!tempFrom || !tempTo) ? theme.colors.text.tertiary : theme.colors.text.inverse,
                         fontFamily: theme.typography.family.bold, 
                         fontSize: 14 
                       }}
                     >
                       Apply Filters
                     </Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
              </View>
           </View>
@@ -745,7 +736,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroCard: {
-    borderRadius: 22,
+    borderRadius: 14,
     padding: 20,
     marginBottom: 24,
   },
@@ -830,6 +821,8 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   balanceItem: {
+    flexWrap: 'wrap',
+    gap: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

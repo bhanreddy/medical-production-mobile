@@ -1,1791 +1,1149 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useIsFocused } from '@react-navigation/native';
+import { mobileLayout } from '@/theme/mobileLayout';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
   Pressable,
-  useWindowDimensions,
-  StatusBar,
-  Platform,
   RefreshControl,
+  StyleSheet,
+  useWindowDimensions,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  withRepeat,
-  withDelay,
-  withSequence,
-  Easing,
-  FadeIn,
-  FadeInDown,
-  FadeInRight,
-  interpolate,
-} from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
-import { Canvas, Path, LinearGradient as SkiaLinearGradient, vec, Circle } from '@shopify/react-native-skia';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import { StatusBar } from 'expo-status-bar';
+import Svg, {
+  Defs,
+  LinearGradient,
+  Stop,
+  Path,
+  Line,
+  Circle,
+} from 'react-native-svg';
+import { format, formatDistanceToNow } from 'date-fns';
+import { useTheme } from '@/hooks/useTheme';
+import { nexsyPalette } from '@/theme/nexsyrus';
+import { DashboardPanel } from '@/components/dashboard/DashboardPanel';
+import { ScrollReveal, RevealViewportContext } from '@/components/dashboard/ScrollReveal';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { useAuthStore } from '@/stores/authStore';
 import { useDashboardData } from '@/hooks/useDashboard';
 import { useRevenueTrend } from '@/hooks/useAnalytics';
-import { formatCurrency, formatRelative, getInitials } from '@/utils/format';
-import type { RevenueTrendPoint } from '@/api/analytics';
-import { useTheme } from '@/hooks/useTheme';
+import {
+  useGlassPreferences,
+  type LiquidPalette,
+} from '@/components/glass/LiquidGlass';
 
-/* ═══════════════════════════════════════════════════════
-   DESIGN TOKENS — light / dark
-   ═══════════════════════════════════════════════════════ */
-
-interface DashboardTokens {
-  isDark: boolean;
-  bg: string;
-  bgMesh: readonly [string, string, string, string];
-  bgCard: string;
-  bgGlass: string;
-  bgGlassBorder: string;
-  blue: string;
-  blueLight: string;
-  blueMid: string;
-  blueGlow: string;
-  green: string;
-  greenLight: string;
-  amber: string;
-  amberLight: string;
-  red: string;
-  redLight: string;
-  purple: string;
-  purpleLight: string;
-  textPrimary: string;
-  textSecondary: string;
-  textTertiary: string;
-  fontDisplay: string;
-  fontMono: string;
-  fontSans: string;
-  px: number;
-  radius: { xs: number; sm: number; md: number; lg: number; xl: number; pill: number };
-  shadowBlue: {
-    shadowColor: string;
-    shadowOffset: { width: number; height: number };
-    shadowOpacity: number;
-    shadowRadius: number;
-    elevation: number;
-  };
-  shadowCard: {
-    shadowColor: string;
-    shadowOffset: { width: number; height: number };
-    shadowOpacity: number;
-    shadowRadius: number;
-    elevation: number;
-  };
-  blurTint: 'dark' | 'light';
-  blurIntensity: number;
-  glassAndroidSolid: string;
-  glassIosDim: string;
-  glassSheen: readonly [string, string, string];
-  glowBlue: string;
-  glowPurple: string;
-  glowTeal: string;
-  dateChipBg: string;
-  headerBtnBg: string;
-  refLineColor: string;
-  pillRowBg: string;
-  pillRowBorder: string;
-  statStripBg: string;
-  skeletonBg: string;
-  fabBorder: string;
-  avatarBorder: string;
-  kpiCardBorder: string;
-}
-
-const fontDisplay = Platform.OS === 'ios' ? 'Georgia' : 'serif';
-const fontMono = Platform.OS === 'ios' ? 'Courier New' : 'monospace';
-const fontSans = Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif';
-const radius = { xs: 8, sm: 12, md: 16, lg: 20, xl: 24, pill: 100 } as const;
-const px = 24;
-
-function buildTokens(isDark: boolean): DashboardTokens {
-  const brand = {
-    blue: '#3B7BF8',
-    blueMid: 'rgba(59,123,248,0.28)',
-    green: '#22C55E',
-    amber: '#F59E0B',
-    red: '#EF4444',
-    purple: '#A78BFA',
-  };
-
-  if (isDark) {
-    return {
-      isDark: true,
-      bg: '#0A0D14',
-      bgMesh: ['#06080F', '#0A0D14', '#080B12', '#0A1622'],
-      bgCard: '#111520',
-      bgGlass: 'rgba(255,255,255,0.04)',
-      bgGlassBorder: 'rgba(255,255,255,0.08)',
-      ...brand,
-      blueLight: 'rgba(59,123,248,0.14)',
-      blueGlow: 'rgba(59,123,248,0.35)',
-      greenLight: 'rgba(34,197,94,0.14)',
-      amberLight: 'rgba(245,158,11,0.14)',
-      redLight: 'rgba(239,68,68,0.14)',
-      purpleLight: 'rgba(167,139,250,0.14)',
-      textPrimary: '#F0F4FF',
-      textSecondary: '#7A8BAA',
-      textTertiary: '#3D4A62',
-      fontDisplay,
-      fontMono,
-      fontSans,
-      px,
-      radius,
-      shadowBlue: {
-        shadowColor: '#3B7BF8',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 24,
-        elevation: 12,
-      },
-      shadowCard: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 16,
-        elevation: 8,
-      },
-      blurTint: 'dark',
-      blurIntensity: 52,
-      glassAndroidSolid: 'rgba(14,17,26,0.94)',
-      glassIosDim: 'rgba(14,17,26,0.45)',
-      glassSheen: ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)', 'rgba(255,255,255,0.02)'],
-      glowBlue: 'rgba(59,123,248,0.09)',
-      glowPurple: 'rgba(167,139,250,0.07)',
-      glowTeal: 'rgba(45,212,191,0.06)',
-      dateChipBg: 'rgba(255,255,255,0.05)',
-      headerBtnBg: 'rgba(255,255,255,0.06)',
-      refLineColor: 'rgba(255,255,255,0.04)',
-      pillRowBg: 'rgba(0,0,0,0.35)',
-      pillRowBorder: 'rgba(255,255,255,0.06)',
-      statStripBg: 'rgba(255,255,255,0.04)',
-      skeletonBg: 'rgba(255,255,255,0.12)',
-      fabBorder: 'rgba(255,255,255,0.25)',
-      avatarBorder: 'rgba(255,255,255,0.28)',
-      kpiCardBorder: 'rgba(255,255,255,0.12)',
-    };
-  }
-
-  return {
-    isDark: false,
-    bg: '#F0F3F9',
-    bgMesh: ['#FFFFFF', '#F0F3F9', '#E8EEF6', '#F5F8FC'],
-    bgCard: '#FFFFFF',
-    bgGlass: 'rgba(0,0,0,0.04)',
-    bgGlassBorder: 'rgba(0,0,0,0.08)',
-    ...brand,
-    blueLight: 'rgba(59,123,248,0.12)',
-    blueGlow: 'rgba(59,123,248,0.22)',
-    greenLight: 'rgba(34,197,94,0.12)',
-    amberLight: 'rgba(245,158,11,0.12)',
-    redLight: 'rgba(239,68,68,0.1)',
-    purpleLight: 'rgba(124,58,237,0.1)',
-    textPrimary: '#0C1222',
-    textSecondary: '#5C6B84',
-    textTertiary: '#8B98AD',
-    fontDisplay,
-    fontMono,
-    fontSans,
-    px,
-    radius,
-    shadowBlue: {
-      shadowColor: '#3B7BF8',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.22,
-      shadowRadius: 16,
-      elevation: 6,
-    },
-    shadowCard: {
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 16,
-      elevation: 3,
-    },
-    blurTint: 'light',
-    blurIntensity: 78,
-    glassAndroidSolid: 'rgba(255,255,255,0.96)',
-    glassIosDim: 'rgba(255,255,255,0.65)',
-    glassSheen: ['rgba(255,255,255,0.85)', 'rgba(255,255,255,0)', 'rgba(0,0,0,0.03)'],
-    glowBlue: 'rgba(59,123,248,0.14)',
-    glowPurple: 'rgba(167,139,250,0.12)',
-    glowTeal: 'rgba(45,212,191,0.1)',
-    dateChipBg: 'rgba(0,0,0,0.04)',
-    headerBtnBg: 'rgba(0,0,0,0.05)',
-    refLineColor: 'rgba(0,0,0,0.06)',
-    pillRowBg: 'rgba(0,0,0,0.06)',
-    pillRowBorder: 'rgba(0,0,0,0.08)',
-    statStripBg: 'rgba(255,255,255,0.9)',
-    skeletonBg: '#E2E8F0',
-    fabBorder: 'rgba(255,255,255,0.65)',
-    avatarBorder: 'rgba(0,0,0,0.1)',
-    kpiCardBorder: 'rgba(0,0,0,0.08)',
-  };
-}
-
-type DashCtxValue = { d: DashboardTokens; styles: ReturnType<typeof StyleSheet.create> };
-const DashCtx = React.createContext<DashCtxValue | null>(null);
-
-function useDash(): DashCtxValue {
-  const v = React.useContext(DashCtx);
-  if (!v) throw new Error('useDash must be used within DashboardScreen');
-  return v;
-}
-
-/* ═══════════════════════════════════════════════════════
-   TYPES
-   ═══════════════════════════════════════════════════════ */
-
-type ChartPeriod = '7D' | '30D' | '90D';
-
-/* ═══════════════════════════════════════════════════════
-   HELPERS
-   ═══════════════════════════════════════════════════════ */
-
-function getGreetingPrefix(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function periodToQuery(p: ChartPeriod): { period: string; range: string } {
-  switch (p) {
-    case '7D': return { period: 'daily', range: '7' };
-    case '30D': return { period: 'daily', range: '30' };
-    case '90D': return { period: 'monthly', range: '90' };
-  }
-}
-
-function buildAreaPath(points: { x: number; y: number }[], width: number, height: number): string {
-  if (points.length === 0) return '';
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1];
-    const curr = points[i];
-    const cpx1 = prev.x + (curr.x - prev.x) / 3;
-    const cpx2 = prev.x + (2 * (curr.x - prev.x)) / 3;
-    d += ` C ${cpx1} ${prev.y}, ${cpx2} ${curr.y}, ${curr.x} ${curr.y}`;
-  }
-  d += ` L ${width} ${height} L 0 ${height} Z`;
-  return d;
-}
-
-function buildLinePath(points: { x: number; y: number }[]): string {
-  if (points.length === 0) return '';
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1];
-    const curr = points[i];
-    const cpx1 = prev.x + (curr.x - prev.x) / 3;
-    const cpx2 = prev.x + (2 * (curr.x - prev.x)) / 3;
-    d += ` C ${cpx1} ${prev.y}, ${cpx2} ${curr.y}, ${curr.x} ${curr.y}`;
-  }
-  return d;
-}
-
-/* ═══════════════════════════════════════════════════════
-   GLASS CARD BASE
-   ═══════════════════════════════════════════════════════ */
-
-function GlassCard({
-  children,
-  style,
-  noBorder = false,
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+const money = (n: number) => currencyFormatter.format(n || 0);
+type Icon = keyof typeof Ionicons.glyphMap;
+const go = (path: string) => router.push(path as never);
+const newSale = () => router.replace('/(app)/(tabs)/pos');
+function Symbol({
+  icon,
+  palette,
+  color,
 }: {
-  children: React.ReactNode;
-  style?: any;
-  noBorder?: boolean;
+  icon: Icon;
+  palette: LiquidPalette;
+  color?: string;
 }) {
-  const { d } = useDash();
   return (
-    <View
-      style={[
-        {
-          borderRadius: d.radius.lg,
-          borderWidth: noBorder ? 0 : 1,
-          borderColor: d.bgGlassBorder,
-          overflow: 'hidden',
-          backgroundColor: Platform.OS === 'android' ? d.glassAndroidSolid : d.glassIosDim,
-        },
-        d.shadowCard,
-        style,
-      ]}
-    >
-      {Platform.OS === 'ios' ? (
-        <BlurView intensity={d.blurIntensity} tint={d.blurTint} style={StyleSheet.absoluteFill} />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: d.glassAndroidSolid }]} />
-      )}
-      <LinearGradient
-        colors={[...d.glassSheen]}
-        locations={[0, 0.45, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
-      />
-      <View style={{ position: 'relative', zIndex: 1 }}>{children}</View>
+    <View style={[s.symbol, { backgroundColor: color ? `${color}16` : palette.soft }]}>
+      <Ionicons name={icon} size={21} color={color || palette.accent} />
     </View>
   );
 }
-
-/* ═══════════════════════════════════════════════════════
-   SKELETON SHIMMER — PREMIUM
-   ═══════════════════════════════════════════════════════ */
-
-function SkeletonRect({
-  width,
-  height,
-  borderRadius = 8,
-}: {
-  width: number | string;
-  height: number;
-  borderRadius?: number;
-}) {
-  const { d } = useDash();
-  const shimmer = useSharedValue(0);
-
-  useEffect(() => {
-    shimmer.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 900, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-    );
-  }, [shimmer]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(shimmer.value, [0, 1], [0.08, 0.18]),
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          width: width as number,
-          height,
-          borderRadius,
-          backgroundColor: d.skeletonBg,
-        },
-        animStyle,
-      ]}
-    />
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   KPI CARD — PREMIUM
-   Each card has a unique gradient personality
-   ═══════════════════════════════════════════════════════ */
-
-interface KpiCardConfig {
-  icon: keyof typeof Ionicons.glyphMap;
-  gradientColors: readonly [string, string, ...string[]];
-  value: string;
-  label: string;
-  sub?: string;
-  subIcon?: keyof typeof Ionicons.glyphMap;
-  accentColor: string;
-  index: number;
-}
-
-function KpiCard({ icon, gradientColors, value, label, sub, subIcon, accentColor, index }: KpiCardConfig) {
-  const { d, styles } = useDash();
-  const scale = useSharedValue(1);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View
-      style={{ marginRight: 14 }}
-      entering={FadeInRight.delay(index * 80).springify().damping(18)}
-    >
-      <Animated.View style={animStyle}>
-        <Pressable
-        onPressIn={() => {
-          scale.value = withSpring(0.96, { damping: 15 });
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, { damping: 15 });
-        }}
-      >
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.kpiCard, d.shadowCard]}
-        >
-          <LinearGradient
-            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.04)', 'transparent']}
-            locations={[0, 0.22, 0.55]}
-            start={{ x: 0.15, y: 0 }}
-            end={{ x: 0.85, y: 0.55 }}
-            style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.22)']}
-            start={{ x: 0.5, y: 0.4 }}
-            end={{ x: 0.5, y: 1 }}
-            style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
-          />
-          {/* Top row: icon + sub badge */}
-          <View style={styles.kpiTopRow}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: 'rgba(255,255,255,0.12)' }]}>
-              <Ionicons name={icon} size={18} color="#FFFFFF" />
-            </View>
-            {sub ? (
-              <View style={styles.kpiBadge}>
-                {subIcon && <Ionicons name={subIcon} size={10} color={accentColor} style={{ marginRight: 2 }} />}
-                <Text style={[styles.kpiBadgeText, { color: accentColor }]}>{sub}</Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* Value */}
-          <Text
-            style={styles.kpiValue}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            {...(Platform.OS === 'ios' ? { fontVariant: ['tabular-nums' as const] } : {})}
-          >
-            {value}
-          </Text>
-
-          {/* Label */}
-          <Text style={styles.kpiLabel}>{label}</Text>
-
-          {/* Decorative ring */}
-          <View style={styles.kpiDecorRing} />
-        </LinearGradient>
-      </Pressable>
-      </Animated.View>
-    </Animated.View>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   ALERT CHIP — PREMIUM
-   ═══════════════════════════════════════════════════════ */
-
-function AlertChip({
-  label,
-  bgColor,
-  borderColor,
-  textColor,
-  dotColor,
-  onPress,
-}: {
-  label: string;
-  bgColor: string;
-  borderColor: string;
-  textColor: string;
-  dotColor: string;
-  onPress: () => void;
-}) {
-  const { styles } = useDash();
-  const pulse = useSharedValue(1);
-
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(0.4, { duration: 900, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-    );
-  }, [pulse]);
-
-  const dotStyle = useAnimatedStyle(() => ({
-    opacity: pulse.value,
-  }));
-
-  return (
-    <Pressable
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}
-      style={[styles.chip, { backgroundColor: bgColor, borderColor }]}
-    >
-      <Animated.View style={[styles.chipDot, { backgroundColor: dotColor }, dotStyle]} />
-      <Text style={[styles.chipText, { color: textColor }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   PERIOD PILL — PREMIUM
-   ═══════════════════════════════════════════════════════ */
-
-function PeriodPill({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  const { styles } = useDash();
-  const glow = useSharedValue(selected ? 1 : 0);
-
-  useEffect(() => {
-    glow.value = withTiming(selected ? 1 : 0, { duration: 200 });
-  }, [selected, glow]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    shadowOpacity: interpolate(glow.value, [0, 1], [0, 0.55]),
-  }));
-
-  return (
-    <Pressable
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}
-    >
-      <Animated.View
-        style={[
-          styles.pill,
-          selected ? styles.pillSelected : styles.pillUnselected,
-          animStyle,
-        ]}
-      >
-        <Text style={[styles.pillText, selected ? styles.pillTextSelected : styles.pillTextUnselected]}>
-          {label}
-        </Text>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   REVENUE CHART — PREMIUM
-   ═══════════════════════════════════════════════════════ */
-
-interface RevenueChartProps {
-  data: RevenueTrendPoint[];
-  chartWidth: number;
-}
-
-function RevenueChart({ data, chartWidth }: RevenueChartProps) {
-  const { d, styles } = useDash();
-  const CHART_H = 180;
-  const PAD_V = 20;
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = 0;
-    progress.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) });
-  }, [data, progress]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateY: interpolate(progress.value, [0, 1], [12, 0]) }],
-  }));
-
-  if (data.length === 0) {
-    return (
-      <View style={{ height: CHART_H, justifyContent: 'center', alignItems: 'center' }}>
-        <Ionicons name="analytics-outline" size={32} color={d.textTertiary} />
-        <Text style={[styles.emptyChartText]}>No data for this period</Text>
-      </View>
-    );
-  }
-
-  const revenues = data.map((row) => row.revenue);
-  const maxRev = Math.max(...revenues, 1);
-  const minRev = Math.min(...revenues, 0);
-  const range = Math.max(maxRev - minRev, 1);
-
-  const points = data.map((row, i) => ({
-    x: (i / Math.max(data.length - 1, 1)) * chartWidth,
-    y: PAD_V + (1 - (row.revenue - minRev) / range) * (CHART_H - PAD_V * 2),
-  }));
-
-  const areaPath = buildAreaPath(points, chartWidth, CHART_H);
-  const linePath = buildLinePath(points);
-
-  // Identify peak point
-  const maxIdx = revenues.indexOf(maxRev);
-  const peakPoint = points[maxIdx];
-
-  // X-axis labels (sparse)
-  const labelIdxs = [...new Set([0, Math.floor(data.length / 2), data.length - 1])];
-
-  // Delta
-  const firstVal = revenues[0] ?? 0;
-  const lastVal = revenues[revenues.length - 1] ?? 0;
-  const delta = firstVal > 0 ? ((lastVal - firstVal) / firstVal) * 100 : 0;
-  const isUp = delta >= 0;
-
-  return (
-    <Animated.View style={animStyle}>
-      {/* Delta badge */}
-      <View style={styles.chartDeltaRow}>
-        <Text style={styles.chartSumValue}>{formatCurrency(revenues.reduce((a, b) => a + b, 0))}</Text>
-        <View style={[styles.deltaBadge, { backgroundColor: isUp ? d.greenLight : d.redLight }]}>
-          <Ionicons name={isUp ? 'trending-up' : 'trending-down'} size={12} color={isUp ? d.green : d.red} />
-          <Text style={[styles.deltaText, { color: isUp ? d.green : d.red }]}>
-            {isUp ? '+' : ''}{delta.toFixed(1)}%
-          </Text>
-        </View>
-      </View>
-
-      {/* Canvas */}
-      <Canvas style={{ width: chartWidth, height: CHART_H }}>
-        {/* Area gradient fill */}
-        <Path path={areaPath}>
-          <SkiaLinearGradient
-            start={vec(0, 0)}
-            end={vec(0, CHART_H)}
-            colors={[`${d.blue}55`, `${d.blue}00`]}
-          />
-        </Path>
-        {/* Line stroke */}
-        <Path path={linePath} style="stroke" strokeWidth={2.5} color={d.blue} />
-        {/* Peak circle outer */}
-        {peakPoint && (
-          <Circle cx={peakPoint.x} cy={peakPoint.y} r={7} color={`${d.blue}30`} />
-        )}
-        {/* Peak circle inner */}
-        {peakPoint && (
-          <Circle cx={peakPoint.x} cy={peakPoint.y} r={3.5} color={d.blue} />
-        )}
-        {/* Baseline dots */}
-        {points.map((pt, i) => (
-          <Circle key={i} cx={pt.x} cy={CHART_H - 1} r={1.5} color={`${d.blue}30`} />
-        ))}
-      </Canvas>
-
-      {/* Dashed horizontal reference line at mid */}
-      <View style={[styles.refLine, { top: CHART_H / 2 }]} />
-
-      {/* X-axis labels */}
-      <View style={styles.xAxisRow}>
-        {labelIdxs.map((idx, i) => (
-          <Text key={i} style={styles.axisLabel}>
-            {data[idx]?.date?.slice(5) ?? ''}
-          </Text>
-        ))}
-      </View>
-    </Animated.View>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   STAT STRIP — replaces QuickStat row
-   ═══════════════════════════════════════════════════════ */
-
-function StatStrip({ label, value, color, icon, index }: {
-  label: string;
-  value: string;
-  color: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  index: number;
-}) {
-  const { styles } = useDash();
-  return (
-    <Animated.View
-      style={[styles.statStrip, { borderLeftColor: color }]}
-      entering={FadeInDown.delay(index * 60).springify().damping(18)}
-    >
-      <Ionicons name={icon} size={13} color={color} style={{ marginBottom: 4 }} />
-      <Text style={[styles.statStripValue, { color }]} numberOfLines={1} adjustsFontSizeToFit>
-        {value}
-      </Text>
-      <Text style={styles.statStripLabel}>{label}</Text>
-    </Animated.View>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   ACTIVITY ITEM — PREMIUM
-   ═══════════════════════════════════════════════════════ */
-
-interface ActivityItemData {
-  id: string;
-  invoice_number: string;
-  customer_name: string;
-  net_amount: number;
-  date: string;
-  payment_mode: string;
-  is_return: boolean;
-}
-
-function ActivityItem({ item, index }: { item: ActivityItemData; index: number }) {
-  const { d, styles } = useDash();
-  const scale = useSharedValue(1);
-  const isReturn = item.is_return;
-  const color = isReturn ? d.red : d.green;
-  const bgColor = isReturn ? d.redLight : d.greenLight;
-
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  return (
-    <Animated.View
-      entering={FadeInDown.delay(index * 40).springify().damping(20)}
-    >
-      <Animated.View style={animStyle}>
-        <Pressable
-        onPressIn={() => { scale.value = withSpring(0.985); }}
-        onPressOut={() => { scale.value = withSpring(1); }}
-        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-      >
-        <View style={styles.activityRow}>
-          {/* Left accent line */}
-          <View style={[styles.activityAccent, { backgroundColor: color }]} />
-
-          {/* Icon */}
-          <View style={[styles.activityIconWrap, { backgroundColor: bgColor }]}>
-            <Ionicons
-              name={isReturn ? 'return-down-back' : 'receipt-outline'}
-              size={15}
-              color={color}
-            />
-          </View>
-
-          {/* Content */}
-          <View style={styles.activityContent}>
-            <View style={styles.activityTopRow}>
-              <Text style={styles.activityInvoice} numberOfLines={1}>{item.invoice_number}</Text>
-              <Text style={[styles.activityAmount, { color }]}>
-                {isReturn ? '−' : '+'}{formatCurrency(Math.abs(item.net_amount))}
-              </Text>
-            </View>
-            <View style={styles.activityBottomRow}>
-              <Text style={styles.activityCustomer} numberOfLines={1}>{item.customer_name}</Text>
-              <View style={styles.activityMeta}>
-                {/* Payment mode pill */}
-                <View style={[styles.modePill, { backgroundColor: d.bgGlass, borderColor: d.bgGlassBorder }]}>
-                  <Text style={styles.modePillText}>{item.payment_mode}</Text>
-                </View>
-                <Text style={styles.activityTime}>{formatRelative(item.date)}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Pressable>
-      </Animated.View>
-    </Animated.View>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   EMPTY STATE — PREMIUM
-   ═══════════════════════════════════════════════════════ */
-
-function EmptyActivity() {
-  const { d, styles } = useDash();
-  const float = useSharedValue(0);
-
-  useEffect(() => {
-    float.value = withRepeat(
-      withSequence(
-        withTiming(-6, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-    );
-  }, [float]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: float.value }],
-  }));
-
-  return (
-    <View style={styles.emptyContainer}>
-      <Animated.View style={[styles.emptyOrb, animStyle]}>
-        <LinearGradient colors={[d.blueLight, 'transparent']} style={styles.emptyOrbGrad}>
-          <Ionicons name="receipt-outline" size={34} color={d.blue} />
-        </LinearGradient>
-      </Animated.View>
-      <Text style={styles.emptyTitle}>All clear</Text>
-      <Text style={styles.emptySubtitle}>No recent transactions</Text>
-    </View>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   SECTION HEADER
-   ═══════════════════════════════════════════════════════ */
-
-function SectionHeader({
-  title,
+function SectionTitle({
   eyebrow,
-  action,
-  onAction,
-}: {
-  title: string;
+  title,
+  palette,
+  children,
+}: React.PropsWithChildren<{
   eyebrow?: string;
-  action?: string;
-  onAction?: () => void;
-}) {
-  const { d, styles } = useDash();
+  title: string;
+  palette: LiquidPalette;
+}>) {
   return (
-    <View style={styles.sectionHeaderRow}>
-      <View>
-        {eyebrow ? <Text style={styles.sectionEyebrow}>{eyebrow}</Text> : null}
-        <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={s.sectionTitle}>
+      <View style={s.flex}>
+        {eyebrow && <Text style={[s.eyebrow, { color: palette.muted }]}>{eyebrow}</Text>}
+        <Text style={[s.sectionName, { color: palette.text }]}>{title}</Text>
       </View>
-      {action && onAction ? (
-        <Pressable onPress={onAction} hitSlop={10} style={styles.sectionActionHit}>
-          <Text style={styles.sectionAction}>{action}</Text>
-          <Ionicons name="chevron-forward" size={14} color={d.blue} style={{ marginTop: 1 }} />
-        </Pressable>
-      ) : null}
+      {children}
     </View>
   );
 }
-
-/* ═══════════════════════════════════════════════════════
-   MAIN SCREEN
-   ═══════════════════════════════════════════════════════ */
-
-export default function DashboardScreen() {
-  const { isDark, toggleTheme } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
-  const user = useAuthStore((s) => s.user);
-
-  const d = useMemo(() => buildTokens(isDark), [isDark]);
-  const styles = useMemo(() => createStyles(d), [d]);
-  const dashCtx = useMemo(() => ({ d, styles }), [d, styles]);
-
-  const onToggleTheme = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toggleTheme();
-  }, [toggleTheme]);
-
-  const { data: dashboard, isLoading, refetch: refetchDashboard, isRefetching: isRefetchingDashboard } =
-    useDashboardData();
-
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('7D');
-  const { period, range } = periodToQuery(chartPeriod);
-  const {
-    data: trendData,
-    isLoading: isTrendLoading,
-    refetch: refetchTrend,
-    isRefetching: isRefetchingTrend,
-  } = useRevenueTrend(period, range);
-
-  // FAB entry
-  const fabScale = useSharedValue(0);
-  const fabRotate = useSharedValue(0);
-  useEffect(() => {
-    fabScale.value = withDelay(400, withSpring(1, { damping: 10, stiffness: 100 }));
-  }, [fabScale]);
-  const fabAnimStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: fabScale.value },
-      { rotate: `${interpolate(fabScale.value, [0, 1], [-30, 0])}deg` },
-    ],
+function RevenueChart({
+  rows,
+  palette,
+  selected,
+  onSelect,
+}: {
+  rows: { date: string; revenue: number }[];
+  palette: LiquidPalette;
+  selected: number | null;
+  onSelect: (index: number) => void;
+}) {
+  const [width, setWidth] = useState(300);
+  const height = 150,
+    left = 6,
+    right = width - 6,
+    top = 12,
+    bottom = height - 12;
+  const { points, path } = useMemo(() => {
+  const max = Math.max(...rows.map((r) => r.revenue), 1) * 1.12;
+  const points = rows.map((r, i) => ({
+    x: left + ((right - left) * i) / Math.max(rows.length - 1, 1),
+    y: bottom - (r.revenue / max) * (bottom - top),
   }));
-
-  // Derived
-  const firstName = user?.name?.split(' ')[0] ?? 'User';
-  const initials = getInitials(user?.name ?? 'U');
-  const greeting = getGreetingPrefix();
-  const alertCount = useMemo(() => {
-    if (!dashboard) return 0;
-    return (
-      (dashboard.low_stock_count ?? 0) +
-      (dashboard.expiry_count_30d ?? 0) +
-      (dashboard.shortbook_count ?? 0)
-    );
-  }, [dashboard]);
-  const hasAlerts = alertCount > 0;
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const onRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await Promise.all([refetchDashboard(), refetchTrend()]);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [refetchDashboard, refetchTrend]);
-  const refreshing = isRefreshing || isRefetchingDashboard || isRefetchingTrend;
-
-  const chartWidth = screenWidth - 80;
-
-  const avgBasket = useMemo(() => {
-    if (!trendData || trendData.length === 0) return '—';
-    const sum = trendData.reduce((acc, d) => acc + (d.avg_basket ?? 0), 0);
-    return formatCurrency(sum / trendData.length);
-  }, [trendData]);
-
-  const trendDataArr = useMemo<RevenueTrendPoint[]>(() => trendData ?? [], [trendData]);
-
-  const goToAlerts = useCallback(() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(app)/(tabs)/inventory' as never); }, []);
-  const goToSettings = useCallback(() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(app)/settings' as never); }, []);
-  const goToPOS = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.replace('/(app)/(tabs)/pos' as never);
-  }, []);
-
-  /* ─── Today's date string ───────────────────────────── */
-  const todayStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
-
-  /* ─── Render ────────────────────────────────────────── */
-
+  // Horizontal cubic tangents keep the curve between neighbouring revenue values.
+  const path = points
+    .map((point, i) => {
+      if (!i) return `M ${point.x} ${point.y}`;
+      const prev = points[i - 1],
+        mid = (prev.x + point.x) / 2;
+      return `C ${mid} ${prev.y}, ${mid} ${point.y}, ${point.x} ${point.y}`;
+    })
+    .join(' ');
+    return { points, path };
+  }, [rows, width]);
+  const active = selected === null ? undefined : points[selected];
   return (
-    <DashCtx.Provider value={dashCtx}>
-    <View style={styles.root}>
-      <StatusBar barStyle={d.isDark ? 'light-content' : 'dark-content'} backgroundColor={d.bg} />
-
-      {/* Background gradient layer */}
-      <LinearGradient
-        colors={[...d.bgMesh]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
-
-      {/* Glow blobs — purely decorative */}
-      <View style={[styles.glowBlob, styles.glowBlobBlue]} pointerEvents="none" />
-      <View style={[styles.glowBlob, styles.glowBlobPurple]} pointerEvents="none" />
-      <View style={[styles.glowBlob, styles.glowBlobTeal]} pointerEvents="none" />
-
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + 8, paddingBottom: 110 + insets.bottom },
+    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+      <Pressable
+        accessibilityRole="adjustable"
+        accessibilityLabel="Revenue chart"
+        accessibilityValue={{
+          text:
+            selected === null
+              ? 'Select a day to inspect revenue'
+              : `${rows[selected]?.date}, ${money(rows[selected]?.revenue || 0)}`,
+        }}
+        accessibilityActions={[
+          { name: 'increment', label: 'Next day' },
+          { name: 'decrement', label: 'Previous day' },
         ]}
-        showsVerticalScrollIndicator={false}
+        onAccessibilityAction={(event) =>
+          onSelect(
+            Math.max(
+              0,
+              Math.min(
+                rows.length - 1,
+                (selected ?? rows.length - 1) +
+                  (event.nativeEvent.actionName === 'increment' ? 1 : -1),
+              ),
+            ),
+          )
+        }
+        onPress={(event) =>
+          onSelect(
+            Math.max(
+              0,
+              Math.min(
+                rows.length - 1,
+                Math.round(
+                  ((event.nativeEvent.locationX - left) / (right - left)) *
+                    (rows.length - 1),
+                ),
+              ),
+            ),
+          )
+        }
+      >
+        <Svg width={width} height={height}>
+          <Defs>
+            <LinearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={palette.accent} stopOpacity="0.28" />
+              <Stop offset="1" stopColor={palette.accent} stopOpacity="0" />
+            </LinearGradient>
+          </Defs>
+          {[top + 10, (top + bottom) / 2, bottom].map((y) => (
+            <Line
+              key={y}
+              x1={left}
+              x2={right}
+              y1={y}
+              y2={y}
+              stroke={palette.grid}
+              strokeDasharray="3 6"
+            />
+          ))}
+          {points.length > 0 && (
+            <>
+              <Path
+                d={`${path} L ${points[points.length - 1].x} ${bottom} L ${left} ${bottom} Z`}
+                fill="url(#revenueGradient)"
+              />
+              <Path
+                d={path}
+                stroke={palette.accent}
+                strokeWidth={2.5}
+                fill="none"
+              />
+            </>
+          )}
+          {active && (
+            <>
+              <Line
+                x1={active.x}
+                x2={active.x}
+                y1={top}
+                y2={bottom}
+                stroke={palette.muted}
+                strokeDasharray="3 5"
+              />
+              <Circle
+                cx={active.x}
+                cy={active.y}
+                r={5}
+                fill={palette.accent}
+                stroke={palette.solid}
+                strokeWidth={3}
+              />
+            </>
+          )}
+        </Svg>
+      </Pressable>
+      <View style={s.chartLabels}>
+        {[0, Math.floor((rows.length - 1) / 2), rows.length - 1].map(
+          (i, key) => (
+            <Text key={key} style={[s.tiny, { color: palette.muted }]}>
+              {rows[i]
+                ? format(new Date(`${rows[i].date}T12:00:00`), 'dd MMM')
+                : ''}
+            </Text>
+          ),
+        )}
+      </View>
+    </View>
+  );
+}
+function DashboardContent() {
+  const { isDark, toggleTheme } = useTheme();
+  const { reduceMotion } = useGlassPreferences();
+  const p = nexsyPalette,
+    successColor = '#267552',
+    insets = useSafeAreaInsets();
+  const { width, height, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
+  const { wide } = layout;
+  const scrollTop = useSharedValue(0);
+  const viewportHeight = useSharedValue(0);
+  const revealViewport = useMemo(() => ({ top: scrollTop, height: viewportHeight, inset: insets.top + 12 }), [scrollTop, viewportHeight, insets.top]);
+  const scrollHandler = useAnimatedScrollHandler(event => { scrollTop.value = event.contentOffset.y; });
+  const user = useAuthStore((state) => state.user);
+  const focused = useIsFocused();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  useEffect(() => { if (!focused) setNotificationsOpen(false); }, [focused]);
+  const dashboard = useDashboardData(focused);
+  const [range, setRange] = useState<7 | 30 | 90>(7);
+  const [selected, setSelected] = useState<number | null>(null);
+  const trend = useRevenueTrend('daily', String(range), focused);
+  const [refreshing, setRefreshing] = useState(false);
+  const data = dashboard.data,
+    unavailable = dashboard.isError && !data;
+  const value = (amount: number | undefined) =>
+    dashboard.isLoading || unavailable ? '—' : money(amount || 0);
+  const bills = data?.today_bills || 0;
+  const firstName = user?.name?.trim().split(/\s+/)[0] || 'there';
+  const hour = new Date().getHours(),
+    greeting =
+      hour < 12
+        ? 'Good morning'
+        : hour < 17
+          ? 'Good afternoon'
+          : 'Good evening';
+  const trendRows = trend.data;
+  const chartDateKey = new Date().toISOString().slice(0, 10);
+  const chart = useMemo(() => {
+    if (!trendRows) return [];
+    const byDay = new Map(
+      trendRows.map((row) => [row.date.slice(0, 10), row.revenue]),
+    );
+    return Array.from({ length: range }, (_, i) => {
+      // The analytics endpoint buckets daily sales in UTC.
+      const date = new Date(
+        Date.parse(`${chartDateKey}T00:00:00Z`) - (range - i - 1) * 86_400_000,
+      )
+        .toISOString()
+        .slice(0, 10);
+      return { date, revenue: byDay.get(date) || 0 };
+    });
+  }, [trendRows, range, chartDateKey]);
+  const selectedDay = selected === null ? undefined : chart[selected];
+  const trendTotal = chart.reduce((sum, row) => sum + row.revenue, 0);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([dashboard.refetch(), trend.refetch()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  const alertTotal =
+    (data?.low_stock_count || 0) +
+    (data?.expiry_count_30d || 0) +
+    (data?.shortbook_count || 0);
+  const attention: {
+    label: string;
+    hint: string;
+    count: number;
+    icon: Icon;
+    color: string;
+    action: () => void;
+  }[] = [
+    {
+      label: 'Low stock',
+      hint: 'Medicines to replenish',
+      count: data?.low_stock_count || 0,
+      icon: 'cube-outline',
+      color: p.amber,
+      action: () =>
+        router.push({
+          pathname: '/(app)/(tabs)/inventory',
+          params: { filter: 'low_stock' },
+        }),
+    },
+    {
+      label: 'Expiring soon',
+      hint: 'Batches within 30 days',
+      count: data?.expiry_count_30d || 0,
+      icon: 'time-outline',
+      color: p.rose,
+      action: () =>
+        router.push({
+          pathname: '/(app)/(tabs)/inventory',
+          params: { filter: 'expiring' },
+        }),
+    },
+    {
+      label: 'Reorder queue',
+      hint: 'Items in your shortbook',
+      count: data?.shortbook_count || 0,
+      icon: 'list-outline',
+      color: p.accent,
+      action: () => go('/(app)/shortbook'),
+    },
+  ];
+  return (
+    <View testID="dashboard-screen" style={[s.screen, { backgroundColor: p.background }]}>
+      <StatusBar style="dark" />
+      <RevealViewportContext.Provider value={revealViewport}>
+      <Animated.ScrollView testID="dashboard-scroll"
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        onLayout={event => { viewportHeight.value = event.nativeEvent.layout.height; }}
+        contentContainerStyle={[
+          s.scroll,
+          { paddingHorizontal: layout.gutter, paddingTop: insets.top + 12, paddingBottom: layout.scrollBottom },
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={d.blue}
-            colors={[d.blue]}
-            progressBackgroundColor={d.bgGlass}
+            tintColor={p.accent}
+            colors={[p.accent]}
           />
         }
+        showsVerticalScrollIndicator={false}
       >
-        {/* ══════════ HEADER ══════════ */}
-        <Animated.View style={styles.headerRow} entering={FadeIn.duration(400)}>
-          <View style={styles.headerLeft}>
-            <View style={styles.headerMetaRow}>
-              <View style={styles.dateChip}>
-                <Ionicons name="calendar-outline" size={12} color={d.textSecondary} />
-                <Text style={styles.dateChipText}>{todayStr}</Text>
-              </View>
+        <View style={[s.content, { maxWidth: layout.contentWidth }]}>
+          <View style={s.topLine}>
+            <View style={s.brand}>
+              <Text style={[s.star, { color: p.accent }]}>✳</Text>
+              <Text style={[s.eyebrow, { color: p.muted }]}>
+                YOUR PHARMACY
+              </Text>
             </View>
-            <Text style={styles.headerTitle}>Dashboard</Text>
-            <Text style={styles.headerGreeting}>
-              {greeting},{' '}
-              <Text style={styles.headerGreetingAccent}>{firstName}</Text>
+            <View style={s.topActions}>
+              <DashboardPanel style={s.roundControl}><Pressable accessibilityRole="button" accessibilityLabel="Open notifications" onPress={() => setNotificationsOpen(true)} style={s.controlPress}>
+                <Ionicons name="notifications-outline" size={19} color={p.text} />
+                {alertTotal > 0 && <View style={s.bellCount}><Text style={{ color: '#FFFFFF', fontSize: 9, fontWeight: '700' }}>{alertTotal > 99 ? '99+' : alertTotal}</Text></View>}
+              </Pressable></DashboardPanel>
+              <DashboardPanel style={s.roundControl}>
+                <Pressable
+                  style={s.controlPress}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isDark ? 'Use light appearance' : 'Use dark appearance'
+                  }
+                  onPress={toggleTheme}
+                >
+                  <Ionicons
+                    name={isDark ? 'sunny-outline' : 'moon-outline'}
+                    size={19}
+                    color={p.text}
+                  />
+                </Pressable>
+              </DashboardPanel>
+              <DashboardPanel style={s.roundControl}>
+                <Pressable
+                  style={s.controlPress}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open settings"
+                  onPress={() => go('/(app)/settings')}
+                >
+                  <Ionicons name="person-outline" size={19} color={p.text} />
+                </Pressable>
+              </DashboardPanel>
+            </View>
+          </View>
+          <Text style={[s.greeting, { color: p.text, fontSize: layout.compact ? 29 : 34, lineHeight: layout.compact ? 36 : 42 }]}>
+            {greeting},{'\n'}
+            <Text style={{ fontWeight: '600' }}>{firstName}.</Text>
+          </Text>
+          <View style={s.dateLine}>
+            <View style={[s.statusDot, { backgroundColor: p.accent }]} />
+            <Text style={[s.tiny, { color: p.muted, flexShrink: 1 }]}>
+              {format(new Date(), 'EEEE, dd MMMM')}
             </Text>
+            {dashboard.isFetching && !refreshing && (
+              <ActivityIndicator
+                size="small"
+                color={p.accent}
+                style={{ marginLeft: 5 }}
+              />
+            )}
           </View>
-          <View style={styles.headerRight}>
+          {!dashboard.isLoading && !unavailable && alertTotal > 0 && (
             <Pressable
-              onPress={onToggleTheme}
-              style={styles.headerBtn}
-              hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={d.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              accessibilityLabel={`${alertTotal} inventory items need attention. Open inventory.`}
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/(tabs)/inventory',
+                  params: { filter: 'low_stock' },
+                })
+              }
+              style={[
+                s.alertBanner,
+                { backgroundColor: `${p.amber}14`, borderColor: `${p.amber}55` },
+              ]}
             >
-              <Ionicons
-                name={d.isDark ? 'sunny-outline' : 'moon-outline'}
-                size={20}
-                color={d.textPrimary}
-              />
+              <Ionicons name="warning-outline" size={18} color={p.amber} />
+              <Text style={[s.alertBannerText, { color: p.text }]}>
+                <Text style={{ fontWeight: '700' }}>
+                  {alertTotal.toLocaleString('en-IN')}
+                </Text>{' '}
+                inventory {alertTotal === 1 ? 'item needs' : 'items need'} your
+                attention
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={p.muted} />
             </Pressable>
-            <Pressable
-              onPress={goToAlerts}
-              style={[styles.headerBtn, hasAlerts && styles.headerBtnAlert]}
-              hitSlop={8}
+          )}
+          {dashboard.isError && (
+            <View
+              accessibilityRole="alert"
+              style={[
+                s.error,
+                { backgroundColor: p.solid, borderColor: p.grid },
+              ]}
             >
-              <Ionicons name="notifications-outline" size={20} color={d.textPrimary} />
-              {hasAlerts ? (
-                <View style={[styles.bellBadge, alertCount > 9 && styles.bellBadgeWide]}>
-                  <Text style={styles.bellBadgeText}>{alertCount > 99 ? '99+' : String(alertCount)}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-            <Pressable onPress={goToSettings} hitSlop={4} style={styles.avatarPressable}>
-              <LinearGradient
-                colors={['#5B8CFF', d.blue, '#4F2FD9']}
-                style={styles.avatarCircle}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <Text style={{ color: p.text, flex: 1, fontSize: 13 }}>
+                {data
+                  ? 'Couldn’t refresh. Your last available figures are shown.'
+                  : 'Your dashboard couldn’t load. Please try again.'}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onRefresh}
+                style={s.retry}
               >
-                <Text style={styles.avatarText}>{initials}</Text>
-              </LinearGradient>
-            </Pressable>
-          </View>
-        </Animated.View>
-
-        {/* ══════════ KPI STRIP ══════════ */}
-        {isLoading ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kpiScroll}>
-            {[0, 1, 2].map((i) => (
-              <View key={i} style={{ marginRight: 14 }}>
-                <SkeletonRect width={186} height={140} borderRadius={22} />
+                <Text style={{ color: p.accent, fontWeight: '600' }}>
+                  Retry
+                </Text>
+              </Pressable>
+            </View>
+          )}
+          <ScrollReveal testID="dashboard-section" style={[s.overview, wide && s.horizontal]}>
+            <DashboardPanel testID="dashboard-revenue" material="hero" style={[s.hero, { padding: layout.compact ? 20 : 24 }, wide && s.flex]}>
+              <View style={s.heroHeader}>
+                <Text style={[s.eyebrow, { color: '#E1EAFF' }]}>
+                  TODAY AT A GLANCE
+                </Text>
+                <Ionicons name="receipt-outline" size={20} color="#FFFFFF" />
               </View>
-            ))}
-          </ScrollView>
-        ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kpiScroll}>
-            <KpiCard
-              index={0}
-              icon="flash-outline"
-              gradientColors={['#1A3A6E', '#1E4DA0', '#3B7BF8']}
-              value={formatCurrency(dashboard?.today_revenue ?? 0)}
-              label="Today's Revenue"
-              sub={`${dashboard?.today_bills ?? 0} bills`}
-              subIcon="receipt-outline"
-              accentColor="#93C5FD"
-            />
-            <KpiCard
-              index={1}
-              icon="trending-up-outline"
-              gradientColors={['#14352A', '#1A4736', '#22C55E']}
-              value={formatCurrency(dashboard?.week_revenue ?? 0)}
-              label="This Week"
-              accentColor="#86EFAC"
-            />
-            <KpiCard
-              index={2}
-              icon="people-outline"
-              gradientColors={['#3D2C0A', '#553B0E', '#F59E0B']}
-              value={formatCurrency(dashboard?.outstanding_receivable ?? 0)}
-              label="Receivable"
-              sub={(dashboard?.outstanding_receivable ?? 0) > 0 ? 'Pending' : undefined}
-              subIcon="time-outline"
-              accentColor="#FCD34D"
-            />
-            <KpiCard
-              index={3}
-              icon="business-outline"
-              gradientColors={['#3D1414', '#551B1B', '#EF4444']}
-              value={formatCurrency(dashboard?.outstanding_payable ?? 0)}
-              label="Payable"
-              accentColor="#FCA5A5"
-            />
-          </ScrollView>
-        )}
-
-        {/* ══════════ ALERT CHIPS ══════════ */}
-        {!isLoading && dashboard ? (
-          <View style={styles.chipRow}>
-            {(dashboard.low_stock_count ?? 0) > 0 && (
-              <AlertChip
-                label={`${dashboard.low_stock_count} Low Stock`}
-                bgColor={d.amberLight}
-                borderColor={`${d.amber}40`}
-                textColor={d.amber}
-                dotColor={d.amber}
-                onPress={() => router.push({ pathname: '/(app)/(tabs)/inventory' as never, params: { filter: 'low_stock' } })}
-              />
-            )}
-            {(dashboard.expiry_count_30d ?? 0) > 0 && (
-              <AlertChip
-                label={`${dashboard.expiry_count_30d} Expiring`}
-                bgColor={d.redLight}
-                borderColor={`${d.red}40`}
-                textColor={d.red}
-                dotColor={d.red}
-                onPress={() => router.push({ pathname: '/(app)/(tabs)/inventory' as never, params: { filter: 'expiring' } })}
-              />
-            )}
-            {(dashboard.shortbook_count ?? 0) > 0 && (
-              <AlertChip
-                label={`${dashboard.shortbook_count} Shortbook`}
-                bgColor={d.blueLight}
-                borderColor={`${d.blue}40`}
-                textColor={d.blue}
-                dotColor={d.blue}
-                onPress={() => router.push('/(app)/(tabs)/inventory' as never)}
-              />
-            )}
-          </View>
-        ) : null}
-
-        {/* ══════════ REVENUE CHART ══════════ */}
-        <Animated.View entering={FadeInDown.delay(200).springify().damping(20)}>
-          <GlassCard style={styles.chartCard}>
-            {/* Chart header */}
-            <View style={styles.chartHeaderRow}>
-              <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={styles.chartSectionLabel}>Revenue trend</Text>
-                <Text style={styles.chartSectionHint}>Net collected across the selected window</Text>
+              <Text style={[s.revenueLabel, { color: '#E1EAFF' }]}>
+                Today’s revenue
+              </Text>
+              <Text
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                style={[s.revenue, { color: '#FFFFFF', fontSize: layout.compact ? 42 : 48 }]}
+              >
+                {value(data?.today_revenue)}
+              </Text>
+              <View style={[s.heroStats, { borderColor: '#FFFFFF40' }, layout.largeText && { flexDirection: 'column' }]}>
+                <View style={s.flex}>
+                  <Text style={[s.tiny, { color: '#E1EAFF' }]}>
+                    Invoices created
+                  </Text>
+                  <Text style={[s.statValue, { color: '#FFFFFF' }]}>
+                    {dashboard.isLoading || unavailable
+                      ? '—'
+                      : bills.toLocaleString('en-IN')}{' '}
+                    <Text style={[s.tiny, { color: '#E1EAFF' }]}>bills</Text>
+                  </Text>
+                </View>
+                <View style={s.flex}>
+                  <Text style={[s.tiny, { color: '#E1EAFF' }]}>Average bill</Text>
+                  <Text
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                    style={[s.statValue, { color: '#FFFFFF' }]}
+                  >
+                    {value(bills ? (data?.today_revenue || 0) / bills : 0)}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.pillRow}>
-                {(['7D', '30D', '90D'] as ChartPeriod[]).map((p) => (
-                  <PeriodPill key={p} label={p} selected={chartPeriod === p} onPress={() => setChartPeriod(p)} />
+              <Pressable
+                accessibilityRole="button"
+                onPress={newSale}
+                style={({ pressed }) => [
+                  s.primary,
+                  {
+                    backgroundColor: '#FFFFFF',
+                    transform: [{ scale: pressed && !reduceMotion ? 0.98 : 1 }],
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={21}
+                  color={p.accent}
+                />
+                <Text style={[s.primaryText, { color: p.accent }]}>
+                  New sale
+                </Text>
+                <Ionicons
+                  name="arrow-up-outline"
+                  size={19}
+                  color={p.accent}
+                  style={{ transform: [{ rotate: '45deg' }] }}
+                />
+              </Pressable>
+            </DashboardPanel>
+            <DashboardPanel testID="dashboard-report" style={[s.chartPanel, wide && s.flex]}>
+              <SectionTitle
+                title={range === 7 ? "Weekly report" : "Revenue report"}
+                palette={p}
+              />
+              <View style={[s.segments, { backgroundColor: p.soft }]}>
+                {([7, 30, 90] as const).map((days) => (
+                  <Pressable
+                    key={days}
+                    onPress={() => {
+                      setRange(days);
+                      setSelected(null);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Show ${days} days`}
+                    accessibilityState={{ selected: range === days }}
+                    style={[
+                      s.segment,
+                      range === days && {
+                        backgroundColor: p.solid,
+                        borderColor: p.edge,
+                        borderWidth: 1,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        s.segmentText,
+                        { color: range === days ? p.text : p.muted },
+                      ]}
+                    >
+                      {days}D
+                    </Text>
+                  </Pressable>
                 ))}
               </View>
-            </View>
-
-            {/* Divider */}
-            <View style={styles.chartDivider} />
-
-            {isTrendLoading ? (
-              <SkeletonRect width={chartWidth} height={180} borderRadius={8} />
-            ) : (
-              <RevenueChart data={trendDataArr} chartWidth={chartWidth} />
-            )}
-          </GlassCard>
-        </Animated.View>
-
-        {/* ══════════ STAT STRIP ══════════ */}
-        <View style={styles.statStripRow}>
-          <StatStrip index={0} label="Avg Basket" value={avgBasket} color={d.blue} icon="basket-outline" />
-          <StatStrip index={1} label="Bills Today" value={String(dashboard?.today_bills ?? 0)} color={d.green} icon="receipt-outline" />
-          <StatStrip index={2} label="Week Rev." value={formatCurrency(dashboard?.week_revenue ?? 0)} color={d.purple} icon="bar-chart-outline" />
-        </View>
-
-        {/* ══════════ RECENT ACTIVITY ══════════ */}
-        <View style={styles.activitySection}>
-          <SectionHeader
-            eyebrow="Live feed"
-            title="Recent Activity"
-            action="See all"
-            onAction={() => router.replace('/(app)/(tabs)/pos' as never)}
-          />
-
-          {isLoading ? (
-            <GlassCard style={{ padding: 16, gap: 12 }}>
-              {[0, 1, 2].map((i) => (
-                <SkeletonRect key={i} width={screenWidth - 80} height={58} borderRadius={10} />
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[s.chartAmount, { color: p.text }]}
+              >
+                {trend.isLoading || (trend.isError && !trend.data)
+                  ? '—'
+                  : money(selectedDay?.revenue ?? trendTotal)}
+              </Text>
+              <Text style={[s.tiny, { color: p.muted, marginBottom: 8 }]}>
+                {selectedDay
+                  ? format(
+                      new Date(`${selectedDay.date}T12:00:00`),
+                      'EEEE, dd MMM',
+                    )
+                  : `Last ${range} days · tap the chart to explore`}
+              </Text>
+              {trend.isLoading ? (
+                <View style={s.chartPlaceholder}>
+                  <ActivityIndicator color={p.accent} />
+                </View>
+              ) : trend.isError && !trend.data ? (
+                <Pressable
+                  style={s.chartPlaceholder}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry revenue chart"
+                  onPress={() => trend.refetch()}
+                >
+                  <Ionicons name="refresh-outline" color={p.accent} size={24} />
+                  <Text style={{ color: p.muted, fontSize: 12 }}>
+                    Couldn’t load revenue. Tap to retry.
+                  </Text>
+                </Pressable>
+              ) : (
+                <RevenueChart
+                  rows={chart}
+                  palette={p}
+                  selected={selected}
+                  onSelect={setSelected}
+                />
+              )}
+              {trend.isError && trend.data && (
+                <Text style={[s.tiny, { color: p.amber }]}>
+                  Showing your last available chart.
+                </Text>
+              )}
+            </DashboardPanel>
+          </ScrollReveal>
+          <ScrollReveal testID="dashboard-financials" style={[s.metricGrid, layout.compact && { flexDirection: 'column' }]}>
+            {[
+              {
+                label: 'To collect',
+                hint: 'From customers',
+                value: data?.outstanding_receivable,
+                icon: 'arrow-down-outline' as Icon,
+                path: '/(app)/(tabs)/patients',
+                tone: 'violet' as const,
+                color: p.violet,
+              },
+              {
+                label: 'To pay',
+                hint: 'To suppliers',
+                value: data?.outstanding_payable,
+                icon: 'arrow-up-outline' as Icon,
+                path: '/(app)/suppliers',
+                tone: 'amber' as const,
+                color: p.amber,
+              },
+            ].map((metric) => (
+              <DashboardPanel key={metric.label} style={s.flex}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${metric.label}, ${value(metric.value)}. ${metric.hint}`}
+                  style={s.metric}
+                  onPress={() => go(metric.path)}
+                >
+                  <View style={s.metricHeading}>
+                    <Ionicons name={metric.icon} size={18} color={metric.color} />
+                    <Ionicons
+                      name="arrow-forward-outline"
+                      size={15}
+                      color={p.muted}
+                      style={{ transform: [{ rotate: '-45deg' }] }}
+                    />
+                  </View>
+                  <Text style={[s.metricLabel, { color: p.muted }]}>
+                    {metric.label}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={[s.metricValue, { color: p.text }]}
+                  >
+                    {value(metric.value)}
+                  </Text>
+                </Pressable>
+              </DashboardPanel>
+            ))}
+          </ScrollReveal>
+          <View style={s.actionHeading}>
+            <Text style={[s.sectionName, { color: p.text }]}>
+              Quick actions
+            </Text>
+          </View>
+          <ScrollReveal testID="dashboard-actions"><DashboardPanel style={s.quickActions}>
+            {[
+              {
+                label: 'Invoice',
+                icon: 'receipt-outline' as Icon,
+                action: newSale,
+              },
+              {
+                label: 'Stock',
+                icon: 'cube-outline' as Icon,
+                action: () => go('/(app)/(tabs)/inventory'),
+              },
+              {
+                label: 'Patients',
+                color: p.violet,
+                icon: 'people-outline' as Icon,
+                action: () => go('/(app)/(tabs)/patients'),
+              },
+              {
+                label: 'Reports',
+                color: p.amber,
+                icon: 'pie-chart-outline' as Icon,
+                action: () => go('/(app)/reports'),
+              },
+            ].map((action) => (
+              <Pressable
+                key={action.label}
+                accessibilityRole="button"
+                onPress={action.action}
+                style={[s.quickAction, layout.actionColumns === 2 && { flexBasis: '50%', flexGrow: 0, minHeight: 64 }]}
+              >
+                <Symbol icon={action.icon} palette={p} color={action.color} />
+                <Text style={[s.actionLabel, { color: p.text }]}>
+                  {action.label}
+                </Text>
+              </Pressable>
+            ))}
+          </DashboardPanel></ScrollReveal>
+          <ScrollReveal testID="dashboard-section" style={[s.overview, wide && s.horizontal]}>
+            <DashboardPanel style={[s.listPanel, wide && s.flex]}>
+              <SectionTitle
+                title="Stock alerts"
+                palette={p}
+              >
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={23}
+                  color={p.accent}
+                />
+              </SectionTitle>
+              {attention.map((item, i) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.label}, ${dashboard.isLoading || unavailable ? 'unavailable' : item.count}. ${item.hint}`}
+                  key={item.label}
+                  onPress={item.action}
+                  style={[
+                    s.listRow,
+                    i > 0 && { borderTopWidth: 1, borderColor: p.grid },
+                  ]}
+                >
+                  <Symbol icon={item.icon} palette={p} color={item.color} />
+                  <View style={s.flex}>
+                    <Text style={[s.rowTitle, { color: p.text }]}>
+                      {item.label}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      s.count,
+                      {
+                        backgroundColor:
+                          !dashboard.isLoading &&
+                          !unavailable &&
+                          item.count > 0
+                            ? `${item.color}22`
+                            : p.soft,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: item.color,
+                        fontSize: 14,
+                        fontWeight: item.count > 0 ? '700' : '500',
+                        opacity:
+                          !dashboard.isLoading && !unavailable && item.count === 0
+                            ? 0.55
+                            : 1,
+                      }}
+                    >
+                      {dashboard.isLoading || unavailable ? '—' : item.count}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={p.muted} />
+                </Pressable>
               ))}
-            </GlassCard>
-          ) : (dashboard?.recent_activity?.length ?? 0) === 0 ? (
-            <EmptyActivity />
-          ) : (
-            <GlassCard>
-              <FlashListAny
-                data={dashboard?.recent_activity ?? []}
-                keyExtractor={(item: ActivityItemData) => item.id}
-                estimatedItemSize={76}
-                scrollEnabled={false}
-                renderItem={({ item, index }: { item: ActivityItemData; index: number }) => (
-                  <ActivityItem item={item} index={index} />
-                )}
-              />
-            </GlassCard>
-          )}
+              <View style={[s.attentionNote, { backgroundColor: p.soft }]}>
+                <View
+                  style={[
+                    s.statusDot,
+                    {
+                      backgroundColor:
+                        alertTotal === 0 && !dashboard.isLoading && !unavailable
+                          ? successColor
+                          : p.accent,
+                    },
+                  ]}
+                />
+                <Text style={[s.tiny, { color: p.muted }]}>
+                  {dashboard.isLoading || unavailable
+                    ? 'Review stock and expiry dates.'
+                    : alertTotal === 0
+                      ? 'Stock is up to date.'
+                      : 'Review stock and expiry dates.'}
+                </Text>
+              </View>
+            </DashboardPanel>
+            <DashboardPanel style={[s.listPanel, wide && s.flex]}>
+              <SectionTitle
+                title="Recent sales"
+                palette={p}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => go('/(app)/(tabs)/sales')}
+                  style={s.seeAll}
+                >
+                  <Text
+                    style={{ fontSize: 12, color: p.accent, fontWeight: '600' }}
+                  >
+                    See all
+                  </Text>
+                  <Ionicons name="arrow-forward" size={15} color={p.accent} />
+                </Pressable>
+              </SectionTitle>
+              {dashboard.isLoading ? (
+                <ActivityIndicator style={{ padding: 35 }} color={p.accent} />
+              ) : data?.recent_activity?.length ? (
+                data.recent_activity.slice(0, 5).map((sale, i) => (
+                  <Pressable
+                    key={sale.id}
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(app)/sales/[id]',
+                        params: { id: sale.id },
+                      })
+                    }
+                    style={[
+                      s.listRow,
+                      i > 0 && { borderTopWidth: 1, borderColor: p.grid },
+                    ]}
+                  >
+                    <Symbol
+                      icon={
+                        sale.is_return
+                          ? 'return-down-back-outline'
+                          : 'receipt-outline'
+                      }
+                      palette={p}
+                    />
+                    <View style={s.flex}>
+                      <Text
+                        numberOfLines={1}
+                        style={[s.rowTitle, { color: p.text }]}
+                      >
+                        {sale.invoice_number || 'Invoice'}
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={[s.rowHint, { color: p.muted }]}
+                      >
+                        {sale.customer_name || 'Walk-in customer'}
+                        {sale.date
+                          ? ` · ${formatDistanceToNow(new Date(sale.date), { addSuffix: true })}`
+                          : ''}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', maxWidth: '40%' }}>
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        style={[
+                          s.saleAmount,
+                          { color: sale.is_return ? p.rose : p.text },
+                        ]}
+                      >
+                        {sale.is_return ? '−' : ''}
+                        {money(Math.abs(sale.net_amount))}
+                      </Text>
+                      <Text style={[s.payment, { color: p.muted }]}>
+                        {sale.is_return
+                          ? 'Return'
+                          : sale.payment_mode || 'Sale'}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={14}
+                      color={p.muted}
+                    />
+                  </Pressable>
+                ))
+              ) : (
+                <View style={s.empty}>
+                  <Ionicons name="receipt-outline" size={28} color={p.accent} />
+                  <Text style={[s.rowTitle, { color: p.text }]}>
+                    {unavailable ? 'Sales are unavailable.' : 'No sales yet'}
+                  </Text>
+                  <Text style={[s.rowHint, { color: p.muted }]}>
+                    {unavailable
+                      ? 'Pull down to try again.'
+                      : 'Your latest sales will appear here.'}
+                  </Text>
+                </View>
+              )}
+            </DashboardPanel>
+          </ScrollReveal>
+          <View style={s.footer}>
+            <Text style={[s.star, { color: p.accent }]}>✳</Text>
+            <Text style={[s.tiny, { color: p.muted }]}>
+              Pharmacy overview
+            </Text>
+          </View>
         </View>
-      </ScrollView>
-
-      {/* ══════════ FAB ══════════ */}
-      <Animated.View style={[styles.fabWrap, fabAnimStyle, { bottom: 28 + insets.bottom }]}>
-        <Pressable
-          onPressIn={() => { fabScale.value = withSpring(0.9, { damping: 12 }); }}
-          onPressOut={() => { fabScale.value = withSpring(1, { damping: 12 }); }}
-          onPress={goToPOS}
-          style={styles.fabPressable}
-          hitSlop={8}
-        >
-          <LinearGradient
-            colors={[d.blue, '#2855D8']}
-            style={styles.fab}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Ionicons name="add" size={30} color="#FFFFFF" />
-          </LinearGradient>
-          {/* Glow ring */}
-          <View style={styles.fabGlow} />
-        </Pressable>
-      </Animated.View>
+      </Animated.ScrollView>
+      </RevealViewportContext.Provider>
+      <Modal visible={notificationsOpen} transparent animationType={reduceMotion ? 'none' : 'fade'} onRequestClose={() => setNotificationsOpen(false)}>
+        <View style={[s.notificationRoot, { paddingTop: insets.top + 64 }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close notifications" onPress={() => setNotificationsOpen(false)} style={[StyleSheet.absoluteFill, { backgroundColor: '#14213A24' }]} />
+          <View testID="notification-panel" accessibilityViewIsModal style={[s.notificationPanel, { maxHeight: Math.max(0, height - insets.top - insets.bottom - 84), width: Math.min(width - 24, 360) }]}>
+            <View style={s.notificationHeader}><Ionicons name="notifications-outline" size={18} color={p.accent} /><Text accessibilityRole="header" style={{ flex: 1, color: p.text, fontSize: 14, fontWeight: '600' }}>Notifications</Text><Pressable accessibilityRole="button" accessibilityLabel="Close notifications" onPress={() => setNotificationsOpen(false)} style={s.notificationClose}><Ionicons name="close" size={19} color={p.muted} /></Pressable></View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {dashboard.isLoading ? <ActivityIndicator accessibilityLabel="Loading notifications" color={p.accent} style={{ padding: 24 }} /> : unavailable ? <Pressable accessibilityRole="button" onPress={onRefresh} style={s.notificationRow}><Text style={{ color: p.muted, fontSize: 12 }}>Notifications couldn’t load. Tap to retry.</Text></Pressable> : attention.map(item => <Pressable key={item.label} accessibilityRole="button" accessibilityLabel={`${item.label}, ${item.count}`} onPress={() => { setNotificationsOpen(false); item.action(); }} style={s.notificationRow}>
+                <View style={[s.notificationIcon, { backgroundColor: `${item.color}12` }]}><Ionicons name={item.icon} size={18} color={item.color} /></View>
+                <View style={{ flex: 1 }}><Text style={{ color: p.text, fontSize: 12, fontWeight: '600' }}>{item.label}</Text><Text style={{ color: p.muted, fontSize: 11, lineHeight: 17, marginTop: 3 }}>{item.count ? `${item.count} ${item.count === 1 ? 'item needs' : 'items need'} attention` : 'You’re all up to date'}</Text></View>
+                {!!item.count && <View style={s.notificationCount}><Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }}>{item.count > 99 ? '99+' : item.count}</Text></View>}<Ionicons name="chevron-forward" size={13} color={p.muted} />
+              </Pressable>)}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
-    </DashCtx.Provider>
   );
 }
-
-/* ═══════════════════════════════════════════════════════
-   STYLES
-   ═══════════════════════════════════════════════════════ */
-
-function createStyles(d: DashboardTokens) {
-  return StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: d.bg,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-
-  /* ── Background decorations ── */
-  glowBlob: {
-    position: 'absolute',
-    borderRadius: 999,
-    pointerEvents: 'none',
-  },
-  glowBlobBlue: {
-    width: 340,
-    height: 340,
-    backgroundColor: d.glowBlue,
-    top: -100,
-    right: -120,
-  },
-  glowBlobPurple: {
-    width: 280,
-    height: 280,
-    backgroundColor: d.glowPurple,
-    bottom: 200,
-    left: -100,
-  },
-  glowBlobTeal: {
-    width: 220,
-    height: 220,
-    backgroundColor: d.glowTeal,
-    top: 120,
-    left: -80,
-  },
-
-  /* ── Header ── */
-  headerRow: {
+export default function DashboardScreen() {
+  return <DashboardContent />;
+}
+const s = StyleSheet.create({
+  bellCount: { position: 'absolute', right: 1, top: 1, minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3, backgroundColor: '#B63D60', alignItems: 'center', justifyContent: 'center' },
+  notificationRoot: { flex: 1, alignItems: 'flex-end', paddingHorizontal: 12, paddingBottom: 20 },
+  notificationPanel: { borderWidth: 1, borderColor: '#E4E9F2', borderRadius: 12, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  notificationHeader: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingLeft: 15, paddingRight: 5, borderBottomWidth: 1, borderColor: '#E4E9F2', minHeight: 54 },
+  notificationClose: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  notificationRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, paddingHorizontal: 15, borderBottomWidth: 1, borderColor: '#EDF0F5' },
+  notificationIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  notificationCount: { backgroundColor: '#2457E6', borderRadius: 12, minWidth: 21, height: 21, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center' },
+  screen: { flex: 1 },
+  scroll: { paddingHorizontal: 20 },
+  content: { width: '100%', alignSelf: 'center', gap: 16 },
+  flex: { flex: 1, minWidth: 0 },
+  topLine: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: d.px,
-    marginBottom: 28,
   },
-  headerLeft: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  headerMetaRow: {
-    flexDirection: 'row',
+  brand: { flexDirection: 'row', gap: 7, alignItems: 'center', flex: 1, minWidth: 0 },
+  star: { fontSize: 24 },
+  eyebrow: { flexShrink: 1, fontSize: 10, fontWeight: '600', letterSpacing: 1.3 },
+  topActions: { flexDirection: 'row', gap: 8 },
+  roundControl: { borderRadius: 14 },
+  controlPress: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
   },
-  dateChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: d.radius.pill,
-    backgroundColor: d.dateChipBg,
-    borderWidth: 1,
-    borderColor: d.bgGlassBorder,
-  },
-  dateChipText: {
-    color: d.textSecondary,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.4,
-  },
-  headerTitle: {
-    color: d.textPrimary,
+  greeting: {
     fontSize: 34,
-    fontWeight: '800',
-    letterSpacing: -1.4,
-    lineHeight: 38,
-    marginBottom: 6,
+    lineHeight: 40,
+    fontWeight: '400',
+    letterSpacing: -1.3,
+    marginTop: 5,
   },
-  headerGreeting: {
-    color: d.textSecondary,
-    fontSize: 15,
-    fontWeight: '500',
-    letterSpacing: -0.2,
+  subtitle: { fontSize: 13, lineHeight: 20, marginTop: -6 },
+  dateLine: {
+    flexDirection: 'row',
+    gap: 7,
+    alignItems: 'center',
+    marginTop: -6,
+    marginBottom: 5,
   },
-  headerGreetingAccent: {
-    color: d.textPrimary,
-    fontWeight: '600',
-  },
-  headerRight: {
+  statusDot: { height: 5, width: 5, borderRadius: 3 },
+  tiny: { fontSize: 11, lineHeight: 16 },
+  alertBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingTop: 2,
-  },
-  headerBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: d.headerBtnBg,
-    borderWidth: 1,
-    borderColor: d.bgGlassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerBtnAlert: {
-    borderColor: 'rgba(239,68,68,0.45)',
-    backgroundColor: 'rgba(239,68,68,0.08)',
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 5,
-    borderRadius: 9,
-    backgroundColor: d.red,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: d.bg,
-  },
-  bellBadgeWide: {
-    minWidth: 22,
-    paddingHorizontal: 4,
-  },
-  bellBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  avatarPressable: {
-    position: 'relative',
-  },
-  avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: d.avatarBorder,
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-
-  /* ── KPI ── */
-  kpiScroll: {
-    paddingHorizontal: d.px,
-    marginBottom: 20,
-  },
-  kpiCard: {
-    width: 186,
-    height: 140,
-    borderRadius: 22,
-    padding: 18,
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: d.kpiCardBorder,
-  },
-  kpiTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  kpiIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  kpiBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    borderRadius: 100,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    gap: 2,
-  },
-  kpiBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  kpiValue: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-    fontFamily: d.fontSans,
-  },
-  kpiLabel: {
-    color: 'rgba(255,255,255,0.58)',
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  kpiDecorRing: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    bottom: -32,
-    right: -32,
-  },
-
-  /* ── Alert chips ── */
-  chipRow: {
-    flexDirection: 'row',
-    paddingHorizontal: d.px,
-    marginBottom: 20,
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 30,
-    borderRadius: 100,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    gap: 6,
-  },
-  chipDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-
-  /* ── Chart ── */
-  chartCard: {
-    marginHorizontal: d.px,
-    borderRadius: 26,
-    padding: 22,
-    marginBottom: 22,
-  },
-  chartHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 14,
-    gap: 8,
-  },
-  chartSectionLabel: {
-    color: d.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-    marginBottom: 4,
-    textTransform: 'none',
-  },
-  chartSectionHint: {
-    color: d.textTertiary,
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: 0.1,
-    lineHeight: 16,
-  },
-  chartDivider: {
-    height: 1,
-    backgroundColor: d.bgGlassBorder,
-    marginBottom: 16,
-  },
-  chartDeltaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
-  },
-  chartSumValue: {
-    color: d.textPrimary,
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  deltaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 100,
-    gap: 3,
-  },
-  deltaText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  refLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: d.refLineColor,
-    borderStyle: 'dashed',
-  },
-  pillRow: {
-    flexDirection: 'row',
-    backgroundColor: d.pillRowBg,
-    borderRadius: 100,
-    padding: 3,
-    gap: 2,
-    borderWidth: 1,
-    borderColor: d.pillRowBorder,
-    marginTop: 2,
-  },
-  pill: {
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 100,
-  },
-  pillSelected: {
-    backgroundColor: d.blue,
-    shadowColor: d.blue,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.55,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  pillUnselected: {
-    backgroundColor: 'transparent',
-  },
-  pillText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  pillTextSelected: {
-    color: '#FFFFFF',
-  },
-  pillTextUnselected: {
-    color: d.textSecondary,
-  },
-  xAxisRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  axisLabel: {
-    color: d.textTertiary,
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 0.3,
-  },
-  emptyChartText: {
-    color: d.textTertiary,
-    fontSize: 13,
-    marginTop: 8,
-  },
-
-  /* ── Stat strip ── */
-  statStripRow: {
-    flexDirection: 'row',
-    paddingHorizontal: d.px,
-    gap: 10,
-    marginBottom: 24,
-  },
-  statStrip: {
-    flex: 1,
-    backgroundColor: d.statStripBg,
-    borderRadius: d.radius.lg,
-    borderWidth: 1,
-    borderColor: d.bgGlassBorder,
-    borderLeftWidth: 3,
     padding: 14,
-    gap: 2,
-  },
-  statStripValue: {
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  statStripLabel: {
-    color: d.textTertiary,
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-
-  /* ── Section header ── */
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 14,
-  },
-  sectionEyebrow: {
-    color: d.textTertiary,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
+    borderRadius: 16,
+    borderWidth: 1,
     marginBottom: 4,
   },
-  sectionTitle: {
-    color: d.textPrimary,
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+  alertBannerText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  error: {
+    padding: 14,
+    borderWidth: 1,
+    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
   },
-  sectionActionHit: {
+  retry: { padding: 8 },
+  overview: { gap: 16 },
+  horizontal: { flexDirection: 'row', alignItems: 'stretch' },
+  hero: { padding: 22, borderRadius: 14 },
+  heroHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'space-between',
+  },
+  revenueLabel: { fontSize: 13, marginTop: 22 },
+  revenue: { fontSize: 48, letterSpacing: -2, fontWeight: '500', marginTop: 5 },
+  caption: { fontSize: 11, marginTop: 8 },
+  heroStats: {
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 24,
+    paddingTop: 18,
+    borderTopWidth: 1,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '500',
+    marginTop: 5,
+    letterSpacing: -0.5,
+  },
+  primary: {
+    minHeight: 44,
+    marginTop: 18,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 17,
+    gap: 9,
+  },
+  primaryText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  chartPanel: { padding: 20, borderRadius: 14 },
+  sectionTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 17,
+  },
+  sectionName: {
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.5,
+    marginTop: 5,
+  },
+  segments: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    padding: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 18,
+  },
+  segment: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 6,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentText: { fontSize: 12, fontWeight: '600' },
+  chartAmount: {
+    fontSize: 27,
+    fontWeight: '500',
+    letterSpacing: -0.9,
+    marginBottom: 4,
+  },
+  chartLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 7,
+  },
+  chartPlaceholder: {
+    height: 175,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  metricGrid: { flexDirection: 'row', gap: 12 },
+  metric: { padding: 20 },
+  metricHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  metricLabel: { fontSize: 12, marginBottom: 5 },
+  metricValue: {
+    fontSize: 25,
+    fontWeight: '500',
+    letterSpacing: -0.8,
+    marginBottom: 4,
+  },
+  actionHeading: { marginTop: 4, marginBottom: -2 },
+  quickActions: {
+    flexWrap: 'wrap',
+    borderRadius: 14,
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingHorizontal: 7,
+  },
+  quickAction: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    minHeight: 60,
     paddingVertical: 4,
+  },
+  symbol: {
+    height: 32,
+    width: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionLabel: { fontSize: 12, fontWeight: '500' },
+  listPanel: { padding: 20, borderRadius: 14 },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingVertical: 12,
+  },
+  rowTitle: { fontSize: 13, fontWeight: '600', letterSpacing: -0.15 },
+  rowHint: { fontSize: 12, marginTop: 4, lineHeight: 18 },
+  count: {
+    minWidth: 30,
+    minHeight: 30,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  attentionNote: {
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  seeAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 12,
     paddingLeft: 8,
   },
-  sectionAction: {
-    color: d.blue,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-  /* ── Activity ── */
-  activitySection: {
-    paddingHorizontal: d.px,
-  },
-  activityRow: {
+  saleAmount: { fontSize: 13, fontWeight: '600' },
+  payment: { fontSize: 9, marginTop: 4, textTransform: 'capitalize' },
+  empty: { alignItems: 'center', paddingVertical: 30, gap: 8 },
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: d.bgGlassBorder,
-    gap: 12,
-  },
-  activityAccent: {
-    width: 3,
-    height: 36,
-    borderRadius: 2,
-  },
-  activityIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    gap: 8,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activityContent: {
-    flex: 1,
-    gap: 4,
-  },
-  activityTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activityBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activityInvoice: {
-    color: d.textPrimary,
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-    flex: 1,
-  },
-  activityAmount: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  activityCustomer: {
-    color: d.textSecondary,
-    fontSize: 12,
-    fontWeight: '400',
-    flex: 1,
-  },
-  activityMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  modePill: {
-    borderWidth: 1,
-    borderRadius: 100,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  modePillText: {
-    color: d.textSecondary,
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  activityTime: {
-    color: d.textTertiary,
-    fontSize: 11,
-    fontWeight: '400',
-  },
-
-  /* ── Empty ── */
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyOrb: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: d.blueLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: `${d.blue}30`,
-  },
-  emptyOrbGrad: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    color: d.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  emptySubtitle: {
-    color: d.textTertiary,
-    fontSize: 13,
-    fontWeight: '400',
-  },
-
-  /* ── FAB ── */
-  fabWrap: {
-    position: 'absolute',
-    right: d.px,
-  },
-  fabPressable: {
-    position: 'relative',
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: d.fabBorder,
-    shadowColor: d.blue,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.55,
-    shadowRadius: 22,
-    elevation: 14,
-  },
-  fabGlow: {
-    position: 'absolute',
-    inset: -8,
-    borderRadius: 30,
-    backgroundColor: d.blueGlow,
-    zIndex: -1,
+    paddingVertical: 12,
   },
 });
-}

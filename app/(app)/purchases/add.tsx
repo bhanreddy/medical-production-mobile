@@ -1,3 +1,4 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
@@ -14,7 +15,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -325,14 +326,17 @@ export default function AddPurchaseScreen() {
             ))}
           </ScrollView>
 
+          <ResponsiveGrid>
           <FloatingInput label="Invoice number *" value={billNumber} onChangeText={setBillNumber} />
           <FloatingInput label="Invoice date (YYYY-MM-DD)" value={invoiceDate} onChangeText={setInvoiceDate} />
 
+          </ResponsiveGrid>
           <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
           <Text style={[styles.sectionHeading, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>
             Line Items ({items.length})
           </Text>
 
+          <ResponsiveGrid>
           {items.map((item, index) => (
             <View key={item.id} style={[styles.itemBlock, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <View style={styles.itemHeader}>
@@ -398,6 +402,7 @@ export default function AddPurchaseScreen() {
             </View>
           ))}
 
+          </ResponsiveGrid>
           <TouchableOpacity style={[styles.addBtn, { borderColor: theme.colors.primary }]} onPress={addItemRow}>
             <Ionicons name="add" size={20} color={theme.colors.primary} />
             <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.family.semiBold, marginLeft: 8 }}>Add Another Item</Text>
@@ -494,7 +499,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     flexShrink: 0,
   },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { padding: 16, paddingBottom: 20 },
   sectionHeading: { fontSize: 18, marginBottom: 16 },
   chip: {
     paddingHorizontal: 14,

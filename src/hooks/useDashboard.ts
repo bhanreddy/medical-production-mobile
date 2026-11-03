@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { reportsApi } from '@/api/reports';
 import type { DashboardData } from '@/api/reports';
 
-export function useDashboardData() {
+export function useDashboardData(active = true) {
   return useQuery({
+    enabled: active,
     queryKey: ['dashboard'],
     queryFn: reportsApi.getDashboard,
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    refetchInterval: active ? 60_000 : false,
   });
 }
 

@@ -1,112 +1,47 @@
-import React from 'react';
-import { StyleSheet, Text, View, Dimensions } from 'react-native';
-import Animated, {
-  FadeInUp,
-  FadeOutUp,
-  SlideInUp,
-  SlideOutUp,
-} from 'react-native-reanimated';
+import { useGlassPreferences } from '@/components/glass/LiquidGlass';
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, View, Pressable, useWindowDimensions } from 'react-native';
+import Animated, { FadeOutUp, SlideInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@/hooks/useTheme';
 import { useUIStore, type ToastType } from '@/stores/uiStore';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const ICON_MAP: Record<ToastType, { name: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
-  success: { name: 'checkmark-circle', color: '#38A169', bg: '#EAF3DE' },
-  error: { name: 'close-circle', color: '#E53E3E', bg: '#FCEBEB' },
-  info: { name: 'information-circle', color: '#0066CC', bg: '#E6F1FB' },
-  warning: { name: 'alert-circle', color: '#F6AD55', bg: '#FAEEDA' },
+const ICONS: Record<ToastType, keyof typeof Ionicons.glyphMap> = {
+  success: 'checkmark-circle-outline', error: 'close-circle-outline', info: 'information-circle-outline', warning: 'alert-circle-outline',
 };
+const TONES = { success: ['#267552', '#EDF8F1'], error: ['#B63D60', '#FFF0F4'], info: ['#2457E6', '#EDF2FF'], warning: ['#94630B', '#FFF6DC'] };
 
-export const ToastProvider: React.FC = () => {
-  const toasts = useUIStore(s => s.toasts);
+export function ToastProvider() {
+  const toast = useUIStore(s => s.toasts[0]);
+  const remove = useUIStore(s => s.removeToast);
   const { theme } = useTheme();
+  const { reduceMotion } = useGlassPreferences();
+  const { width, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-
-  if (toasts.length === 0) return null;
-
-  const toast = toasts[0]; // FIFO — show one at a time
-  const icon = ICON_MAP[toast.type] || ICON_MAP.info;
-
-  return (
-    <View
-      style={[styles.container, { top: insets.top + 12 }]}
-      pointerEvents="box-none"
-    >
-      <Animated.View
-        key={toast.id}
-        entering={SlideInUp.springify().damping(18).stiffness(200)}
-        exiting={FadeOutUp.duration(250)}
-        style={[
-          styles.toast,
-          {
-            backgroundColor: theme.colors.surface,
-            ...theme.shadow.modal,
-            width: SCREEN_WIDTH - 48,
-          },
-        ]}
-      >
-        <View style={[styles.iconCircle, { backgroundColor: icon.bg }]}>
-          <Ionicons name={icon.name} size={20} color={icon.color} />
-        </View>
-        <Text
-          style={[
-            styles.text,
-            {
-              color: theme.colors.text.primary,
-              fontFamily: theme.typography.family.medium,
-            },
-          ]}
-          numberOfLines={2}
-        >
-          {toast.message}
-        </Text>
-      </Animated.View>
-    </View>
-  );
-};
-
-/* ─── useToast convenience hook ─────────────────────── */
-
+  // FIFO: each message receives its full reading time after it reaches the front.
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => remove(toast.id), toast.type === 'error' ? 6000 : 4500);
+    return () => clearTimeout(timer);
+  }, [toast?.id, toast?.type, remove]);
+  if (!toast) return null;
+  const [color, background] = TONES[toast.type] ?? TONES.info;
+  return <View style={[styles.container, { top: insets.top + 12 }]} pointerEvents="box-none">
+    <Animated.View key={toast.id} accessibilityRole="alert" accessibilityLiveRegion="polite" entering={reduceMotion ? undefined : SlideInUp.duration(180)} exiting={reduceMotion ? undefined : FadeOutUp.duration(150)} style={[styles.toast, { width: Math.min(width - 24, 350) }]}>
+      <View style={[styles.iconCircle, { backgroundColor: background }]}><Ionicons name={ICONS[toast.type] ?? ICONS.info} size={18} color={color} /></View>
+      <Text style={[styles.text, { fontFamily: theme.typography.family.medium, fontSize: fontScale >= 1.4 ? 13 : 12 }]}>{toast.message}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Dismiss notification" onPress={() => remove(toast.id)} style={styles.close}><Ionicons name="close" size={16} color="#657087" /></Pressable>
+    </Animated.View>
+  </View>;
+}
 export function useToast() {
   const addToast = useUIStore(s => s.addToast);
-  return {
-    showToast: addToast,
-    success: (msg: string) => addToast(msg, 'success'),
-    error: (msg: string) => addToast(msg, 'error'),
-    info: (msg: string) => addToast(msg, 'info'),
-    warning: (msg: string) => addToast(msg, 'warning'),
-  };
+  return { showToast: addToast, success: (msg: string) => addToast(msg, 'success'), error: (msg: string) => addToast(msg, 'error'), info: (msg: string) => addToast(msg, 'info'), warning: (msg: string) => addToast(msg, 'warning') };
 }
-
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 9999,
-    alignItems: 'center',
-  },
-  toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  text: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  container: { position: 'absolute', left: 0, right: 0, zIndex: 9999, alignItems: 'center' },
+  toast: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#E4E9F2', backgroundColor: '#FFFFFF', paddingLeft: 12, paddingRight: 4, paddingVertical: 7, gap: 9, shadowColor: '#182338', shadowOffset: { width: 0, height: 2 }, shadowOpacity: .08, shadowRadius: 8, elevation: 3 },
+  iconCircle: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  text: { flex: 1, color: '#182338', lineHeight: 19 }, close: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
 });

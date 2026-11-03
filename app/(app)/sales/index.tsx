@@ -1,10 +1,12 @@
+import { mobileLayout } from '@/theme/mobileLayout';
+import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
+import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
 import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useWindowDimensions, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
@@ -18,8 +20,10 @@ import type { Sale } from '@/api/sales';
 const PAYMENT_STATUSES = ['All', 'Paid', 'Credit', 'Partial'];
 
 export default function SalesHistoryScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
   const { medicineId, medicineName } = useLocalSearchParams<{ medicineId?: string; medicineName?: string }>();
   
   const [paymentStatus, setPaymentStatus] = useState('All');
@@ -73,12 +77,13 @@ export default function SalesHistoryScreen() {
 
     return (
       <TouchableOpacity 
-        style={[styles.card, { backgroundColor: isReturn ? theme.colors.dangerLight : theme.colors.surface, ...theme.shadow.card }]}
+        style={[styles.card, { backgroundColor: isReturn ? theme.colors.dangerLight : theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }]}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           router.push(`/(app)/sales/${item.id}`);
         }}
       >
+        <LiquidSheen dark={isDark} />
         <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
         
         {isReturn && (
@@ -125,7 +130,8 @@ export default function SalesHistoryScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-       <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
+      <GlassMeshBackground />
+       <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
           <View style={styles.headerTop}>
               <TouchableOpacity 
                 style={[styles.backBtn, { padding: 12, marginLeft: -12, marginRight: 4 }]} 
@@ -148,18 +154,19 @@ export default function SalesHistoryScreen() {
                {fromDate && toDate ? `${formatDate(fromDate)} – ${formatDate(toDate)}` : 'All Time'}
              </Text>
           </TouchableOpacity>
-       </View>
+       </LiquidPanel>
 
        <View style={styles.listContainer}>
           {isLoading && !data ? (
             <ActivityIndicator style={{ marginTop: 40 }} size="large" color={theme.colors.primary} />
           ) : (
-            <FlashListAny
+            <FlashList
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
               data={sales}
               keyExtractor={(item: Sale) => item.id}
-              estimatedItemSize={76}
               renderItem={renderSale}
-              contentContainerStyle={{ paddingVertical: 12 }}
+              contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 6, paddingBottom: layout.scrollBottom }}
               onEndReached={() => {
                 if (hasNextPage && !isFetchingNextPage) {
                   fetchNextPage();
@@ -230,7 +237,7 @@ const styles = StyleSheet.create({
   filterBtn: { padding: 4 },
   dateFilterRange: { flexDirection: 'row', alignItems: 'center', height: 36, borderRadius: 8, paddingHorizontal: 12, alignSelf: 'flex-start' },
   listContainer: { flex: 1 },
-  card: { flexDirection: 'row', borderRadius: 12, marginHorizontal: 16, marginBottom: 10, overflow: 'hidden' },
+  card: { borderWidth: 1, flexDirection: 'row', borderRadius: 12, marginHorizontal: 6, marginBottom: 10, overflow: 'hidden' },
   accentBar: { width: 4 },
   cardContent: { flex: 1, padding: 16 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

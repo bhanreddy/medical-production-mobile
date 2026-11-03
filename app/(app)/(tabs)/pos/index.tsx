@@ -1,3 +1,6 @@
+import { mobileLayout } from '@/theme/mobileLayout';
+import { ProductCard } from '@/components/pos/ProductCard';
+import { LiquidPanel } from '@/components/glass/LiquidGlass';
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
@@ -8,9 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -41,6 +43,9 @@ type ListItem =
   | { type: 'substitute'; item: Medicine }
   | { type: 'header'; title: string };
 
+const listItemKey = (item: ListItem) => item.type === 'header' ? 'header' : item.type + '_' + item.item.id;
+const listItemType = (item: ListItem) => item.type;
+
 /**
  * Checkout payload aligned with web BillingService + backend POST /sales.
  */
@@ -65,10 +70,14 @@ function buildCheckoutPayload(cartStore: ReturnType<typeof useCartStore.getState
 /* ─── Main Component ─── */
 
 export default function PosScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const numColumns = width > 600 ? 3 : 2;
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
+  const salePanelWidth = 340;
+  const numColumns = layout.wide ? mobileLayout(width - salePanelWidth, fontScale).productColumns : layout.productColumns;
+  const gridPadding = useMemo(() => [styles.flashListContent, { paddingBottom: layout.scrollBottom }], [layout.scrollBottom]);
+  const productSpan = useCallback((cell: { span?: number }, item: ListItem) => { cell.span = item.type === 'header' ? numColumns : 1; }, [numColumns]);
 
   // Local State
   const [searchQuery, setSearchQuery] = useState('');
@@ -99,6 +108,15 @@ export default function PosScreen() {
   );
 
   const isLoading = isSearchActive ? isLoadingSearch : isLoadingAll;
+
+  useEffect(() => () => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+  }, []);
+  const cartByProduct = useMemo(() => {
+    const result = new Map<string, typeof cartStore.items[number]>();
+    for (const line of cartStore.items) if (!result.has(line.product.id)) result.set(line.product.id, line);
+    return result;
+  }, [cartStore.items]);
 
   // Search Debounce Handler
   const handleSearchChange = (text: string) => {
@@ -141,7 +159,7 @@ export default function PosScreen() {
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    cartStore.addItem({
+    useCartStore.getState().addItem({
       product: {
         id: product.id,
         name: product.name,
@@ -156,17 +174,17 @@ export default function PosScreen() {
       gstRate: product.gstRate,
       maxQty: defaultBatch.quantity,
     });
-  }, [cartStore]);
+  }, []);
 
   const handleUpdateQty = useCallback((batchId: string, increment: number, currentQty: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const newQty = currentQty + increment;
     if (newQty <= 0) {
-      cartStore.removeItem(batchId);
+      useCartStore.getState().removeItem(batchId);
     } else {
-      cartStore.updateQty(batchId, newQty);
+      useCartStore.getState().updateQty(batchId, newQty);
     }
-  }, [cartStore]);
+  }, []);
 
   const cartItemCount = cartStore.getItemCount();
 
@@ -256,167 +274,14 @@ export default function PosScreen() {
       );
     }
 
-    const product = item.item;
-    const isOutOfStock = (product.total_stock ?? 0) === 0;
-    const isLowStock = !isOutOfStock && (product.total_stock ?? 0) <= 10;
-    const batch = product.medicine_batches?.[0]; // Fallback to first batch
-    const price = batch?.mrp ?? 0;
-    
-    // Check if in cart to show stepper instead
-    const cartItem = cartStore.items.find(i => i.product.id === product.id);
+    return <ProductCard product={item.item} substitute={item.type === 'substitute'} cartItem={cartByProduct.get(item.item.id)} onAdd={handleAddToCart} onQuantity={handleUpdateQty} />;
+  }, [theme, cartByProduct, isSubstitutesExpanded, handleAddToCart, handleUpdateQty]);
 
-    return (
-      <View style={{ flex: 1 / numColumns, padding: 6 }}>
-        <View style={[styles.productCard, { 
-            backgroundColor: theme.colors.surface, 
-            borderColor: item.type === 'substitute' ? theme.colors.accent : theme.colors.border,
-            borderLeftWidth: item.type === 'substitute' ? 3 : 0.5,
-            ...theme.shadow.card 
-          }]}
-        >
-          {/* Icon Area */}
-          <View style={[styles.iconArea, { backgroundColor: theme.colors.primaryLight }]}>
-            <Ionicons name="medical" size={28} color={theme.colors.primary} style={{ opacity: 0.6 }} />
-            {product.barcode && (
-              <View style={[styles.barcodeBadge, { backgroundColor: theme.colors.surface }]}>
-                <Ionicons name="barcode-outline" size={12} color={theme.colors.text.primary} />
-              </View>
-            )}
-          </View>
+  const cartContent = (
+    <>
 
-          {/* Details */}
-          <Text style={[styles.productName, { color: theme.colors.text.primary, fontFamily: theme.typography.family.medium }]} numberOfLines={2}>
-            {product.name}
-          </Text>
-          <Text style={[styles.productGeneric, { color: theme.colors.text.secondary, fontFamily: theme.typography.family.regular }]} numberOfLines={1}>
-            {product.genericName || 'No generic'}
-          </Text>
-
-          {/* Price & Stock */}
-          <View style={styles.priceRow}>
-            <Text style={[styles.productPrice, { color: theme.colors.primary, fontFamily: theme.typography.family.bold }]}>
-              {formatCurrency(price)}
-            </Text>
-            <View style={[
-              styles.stockBadge, 
-              { backgroundColor: isOutOfStock ? theme.colors.border : isLowStock ? theme.colors.dangerLight : theme.colors.successLight }
-            ]}>
-              <Text style={[styles.stockBadgeText, { color: isOutOfStock ? theme.colors.text.secondary : isLowStock ? theme.colors.danger : theme.colors.success, fontFamily: theme.typography.family.medium }]}>
-                {isOutOfStock ? 'Out' : isLowStock ? 'Low' : product.total_stock}
-              </Text>
-            </View>
-          </View>
-
-          {/* Add / Stepper Button */}
-          {cartItem ? (
-            <View style={[styles.stepperContainer, { backgroundColor: theme.colors.primary }]}>
-                <TouchableOpacity onPress={() => handleUpdateQty(cartItem.batchId, -1, cartItem.qty)} style={styles.stepperBtn}>
-                    <Ionicons name="remove" size={16} color="#fff" />
-                </TouchableOpacity>
-                <Text style={[styles.stepperValue, { fontFamily: theme.typography.family.medium }]}>{cartItem.qty}</Text>
-                <TouchableOpacity onPress={() => handleUpdateQty(cartItem.batchId, 1, cartItem.qty)} style={styles.stepperBtn}>
-                    <Ionicons name="add" size={16} color="#fff" />
-                </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity 
-              style={[styles.addButton, { backgroundColor: isOutOfStock ? theme.colors.border : theme.colors.primary, opacity: isOutOfStock ? 0.5 : 1 }]}
-              onPress={() => handleAddToCart(product)}
-              disabled={isOutOfStock}
-            >
-              <Ionicons name="add" size={18} color={isOutOfStock ? theme.colors.text.secondary : "#FFFFFF"} />
-            </TouchableOpacity>
-          )}
-
-          {/* Out of stock overlay */}
-          {isOutOfStock && (
-            <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>Out of Stock</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  }, [theme, cartStore, isSubstitutesExpanded, numColumns, handleAddToCart, handleUpdateQty]);
-
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <GlassMeshBackground />
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-        <View style={styles.headerTopRow}>
-          <Text style={[styles.title, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Point of Sale</Text>
-          <TouchableOpacity onPress={() => cartSheetRef.current?.expand()} style={styles.cartIconWrapper}>
-            <Ionicons name="cart-outline" size={28} color={theme.colors.text.primary} />
-            {cartItemCount > 0 && (
-              <View style={[styles.cartBadge, { backgroundColor: theme.colors.danger }]}>
-                <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.searchContainer, { backgroundColor: theme.colors.background }]}>
-          <Ionicons name="search" size={20} color={theme.colors.text.secondary} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.colors.text.primary, fontFamily: theme.typography.family.regular }]}
-            placeholder="Search medicines, scan barcode..."
-            placeholderTextColor={theme.colors.text.secondary}
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-          />
-          <TouchableOpacity onPress={() => router.push('/(app)/scanner' as any)}>
-            <Ionicons name="barcode-outline" size={24} color={theme.colors.primary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Category Chips (Only if not searching) */}
-      {!isSearchActive && (
-        <View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-            {CATEGORIES.map(cat => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryChip,
-                  { backgroundColor: selectedCategory === cat ? theme.colors.primary : theme.colors.surface }
-                ]}
-                onPress={() => setSelectedCategory(cat)}
-              >
-                <Text style={[
-                  styles.categoryText,
-                  { color: selectedCategory === cat ? '#fff' : theme.colors.text.secondary, fontFamily: theme.typography.family.medium }
-                ]}>
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Product Grid */}
-      <View style={styles.gridContainer}>
-        {isLoading ? (
-          <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 40 }} />
-        ) : (
-          <FlashListAny
-            data={listData}
-            numColumns={numColumns}
-            estimatedItemSize={180}
-            getItemType={(item: ListItem) => item.type}
-            keyExtractor={(item: ListItem, index: number) => item.type === 'header' ? 'header' : item.type + '_' + item.item.id}
-            contentContainerStyle={styles.flashListContent}
-            renderItem={renderItem}
-          />
-        )}
-      </View>
-
-      {/* Cart Bottom Sheet */}
-      <BottomSheet ref={cartSheetRef} snapPoints={['60%', '92%']} title="Current Sale">
          <View style={styles.cartSheetHeader}>
-           <TouchableOpacity onPress={() => cartStore.clearCart()}>
+           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Clear current sale" style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }} onPress={() => cartStore.clearCart()}>
               <Text style={{ color: theme.colors.danger, fontFamily: theme.typography.family.medium }}>Clear</Text>
            </TouchableOpacity>
          </View>
@@ -428,10 +293,9 @@ export default function PosScreen() {
            </View>
          ) : (
            <View style={{ flex: 1 }}>
-              <FlashListAny
+              <FlashList
                 data={cartStore.items}
                 keyExtractor={(item: any) => item.batchId}
-                estimatedItemSize={72}
                 renderItem={({ item }: { item: typeof cartStore.items[0] }) => (
                   <Swipeable
                     renderRightActions={() => (
@@ -440,17 +304,17 @@ export default function PosScreen() {
                       </TouchableOpacity>
                     )}
                   >
-                    <View style={[styles.cartItemRow, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-                      <View style={[styles.cartItemInitials, { backgroundColor: theme.colors.primaryLight }]}>
+                    <View style={[styles.cartItemRow, layout.compact && { flexDirection: 'column', alignItems: 'stretch', gap: 12 }, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
+                      {!layout.compact && !layout.wide && <View style={[styles.cartItemInitials, { backgroundColor: theme.colors.primaryLight }]}>
                         <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.family.bold }}>{item.product.name.charAt(0)}</Text>
-                      </View>
+                      </View>}
                       <View style={styles.cartItemDetails}>
                         <Text style={{ color: theme.colors.text.primary, fontFamily: theme.typography.family.medium }}>{item.product.name}</Text>
                         <Text style={{ color: theme.colors.text.secondary, fontFamily: theme.typography.family.regular, fontSize: 12 }}>
                           {formatCurrency(item.mrp)} / unit
                         </Text>
                       </View>
-                      <View style={[styles.cartStepper, { borderColor: theme.colors.border }]}>
+                      <View style={[styles.cartStepper, { alignSelf: 'flex-start', borderColor: theme.colors.border }]}>
                         <TouchableOpacity onPress={() => handleUpdateQty(item.batchId, -1, item.qty)} style={styles.cartStepperBtnHoriz}>
                           <Ionicons name="remove" size={16} color={theme.colors.text.primary} />
                         </TouchableOpacity>
@@ -473,7 +337,7 @@ export default function PosScreen() {
                        style={[styles.paymentPill, { backgroundColor: cartStore.paymentMode === mode ? theme.colors.primary : theme.colors.background }]}
                        onPress={() => cartStore.setPaymentMode(mode)}
                      >
-                       <Text style={{ color: cartStore.paymentMode === mode ? '#fff' : theme.colors.text.secondary, fontFamily: theme.typography.family.medium, textTransform: 'capitalize' }}>{mode}</Text>
+                       <Text style={{ color: cartStore.paymentMode === mode ? theme.colors.text.inverse : theme.colors.text.secondary, fontFamily: theme.typography.family.medium, textTransform: 'capitalize' }}>{mode}</Text>
                      </TouchableOpacity>
                    ))}
                  </View>
@@ -506,15 +370,109 @@ export default function PosScreen() {
                    disabled={createSaleMutation.isPending}
                  >
                    {createSaleMutation.isPending ? (
-                     <ActivityIndicator color="#fff" />
+                     <ActivityIndicator color={theme.colors.text.inverse} />
                    ) : (
-                     <Text style={[styles.checkoutBtnText, { fontFamily: theme.typography.family.semiBold }]}>Proceed to Checkout</Text>
+                     <Text style={[styles.checkoutBtnText, { color: theme.colors.text.inverse, fontFamily: theme.typography.family.semiBold }]}>Proceed to Checkout</Text>
                    )}
                  </TouchableOpacity>
               </View>
            </View>
          )}
-      </BottomSheet>
+
+    </>
+  );
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <GlassMeshBackground />
+      {/* Header */}
+      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
+        <View style={styles.headerTopRow}>
+          <Text style={[styles.title, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold }]}>Point of Sale</Text>
+          <TouchableOpacity onPress={() => cartSheetRef.current?.expand()} style={[styles.cartIconWrapper, layout.wide && { display: 'none' }]}>
+            <Ionicons name="cart-outline" size={28} color={theme.colors.text.primary} />
+            {cartItemCount > 0 && (
+              <View style={[styles.cartBadge, { backgroundColor: theme.colors.danger }]}>
+                <Text style={[styles.cartBadgeText, { color: theme.colors.text.inverse }]}>{cartItemCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.searchContainer, { backgroundColor: theme.colors.background }]}>
+          <Ionicons name="search" size={20} color={theme.colors.text.secondary} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.colors.text.primary, fontFamily: theme.typography.family.regular }]}
+            placeholder="Search medicines, scan barcode..."
+            placeholderTextColor={theme.colors.text.secondary}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+          />
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Scan medicine barcode" style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }} onPress={() => router.push('/(app)/scanner' as any)}>
+            <Ionicons name="barcode-outline" size={24} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </LiquidPanel>
+
+      {/* Category Chips (Only if not searching) */}
+      {!isSearchActive && (
+        <View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+            {CATEGORIES.map(cat => (
+              <TouchableOpacity
+                key={cat}
+                style={[
+                  styles.categoryChip,
+                  { backgroundColor: selectedCategory === cat ? theme.colors.primary : theme.colors.surface }
+                ]}
+                onPress={() => setSelectedCategory(cat)}
+              >
+                <Text style={[
+                  styles.categoryText,
+                  { color: selectedCategory === cat ? theme.colors.text.inverse : theme.colors.text.secondary, fontFamily: theme.typography.family.medium }
+                ]}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      <View style={{ flex: 1, flexDirection: layout.wide ? 'row' : 'column', minHeight: 0 }}>
+      {/* Product Grid */}
+      <View style={styles.gridContainer}>
+        {isLoading ? (
+          <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 40 }} />
+        ) : (
+          <FlashList
+            key={numColumns}
+            data={listData}
+            numColumns={numColumns}
+            overrideItemLayout={productSpan}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            getItemType={listItemType}
+            keyExtractor={listItemKey}
+            contentContainerStyle={gridPadding}
+            renderItem={renderItem}
+          />
+        )}
+      </View>
+
+      {layout.wide && (
+        <View style={{ width: salePanelWidth, borderLeftWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, paddingBottom: layout.scrollBottom }}>
+          <Text style={{ padding: 16, minHeight: 60, color: theme.colors.text.primary, fontFamily: theme.typography.family.semiBold, fontSize: 18 }}>Current Sale</Text>
+          {cartContent}
+        </View>
+      )}
+      </View>
+      {/* Cart Bottom Sheet */}
+      {!layout.wide && (
+        <BottomSheet ref={cartSheetRef} snapPoints={['60%', '92%']} title="Current Sale">
+          {cartContent}
+        </BottomSheet>
+      )}
 
       <UpiPaymentSheet
         state={upiModal}
@@ -537,31 +495,16 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 0.5 },
   headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   title: { fontSize: 24 },
-  cartIconWrapper: { position: 'relative', padding: 4 },
+  cartIconWrapper: { position: 'relative', minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   cartBadge: { position: 'absolute', top: 0, right: 0, borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
   cartBadgeText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', height: 48, borderRadius: 12, paddingHorizontal: 12 },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', minHeight: 52, borderRadius: 12, paddingHorizontal: 12 },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 15 },
   categoryScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-  categoryChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  categoryChip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22 },
   categoryText: { fontSize: 14 },
   gridContainer: { flex: 1 },
   flashListContent: { padding: 8, paddingBottom: 100 },
-  productCard: { borderRadius: 16, padding: 12, margin: 6, position: 'relative' },
-  iconArea: { height: 80, borderRadius: 12, justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  barcodeBadge: { position: 'absolute', top: 6, right: 6, padding: 4, borderRadius: 8 },
-  productName: { fontSize: 14, marginTop: 8, minHeight: 40 },
-  productGeneric: { fontSize: 12, marginTop: 2, marginBottom: 8 },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' },
-  productPrice: { fontSize: 16 },
-  stockBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  stockBadgeText: { fontSize: 10 },
-  addButton: { position: 'absolute', bottom: 12, right: 12, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  stepperContainer: { position: 'absolute', bottom: 12, right: 12, height: 32, borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, transform: [{ scale: 0.95 }] },
-  stepperBtn: { padding: 4 },
-  stepperValue: { color: '#fff', marginHorizontal: 8, fontSize: 14 },
-  outOfStockOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  outOfStockText: { color: '#fff', fontWeight: 'bold' },
   substituteHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, width: '100%' },
   substituteHeaderText: { fontSize: 16 },
   cartSheetHeader: { position: 'absolute', top: 16, right: 16, zIndex: 10 },
@@ -570,11 +513,11 @@ const styles = StyleSheet.create({
   cartItemInitials: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   cartItemDetails: { flex: 1 },
   cartStepper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, padding: 4 },
-  cartStepperBtnHoriz: { padding: 4 },
+  cartStepperBtnHoriz: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   deleteAction: { width: 80, justifyContent: 'center', alignItems: 'center' },
   cartSummary: { padding: 16, borderTopWidth: 0.5 },
-  paymentRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  paymentPill: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
+  paymentRow: { flexWrap: 'wrap', flexDirection: 'row', gap: 8, marginBottom: 16 },
+  paymentPill: { minWidth: 64, flex: 1, minHeight: 44, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
   totalsBox: { marginBottom: 16 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   checkoutBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },

@@ -1,15 +1,17 @@
+import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
+import { mobileLayout } from '@/theme/mobileLayout';
+import { LiquidPanel, useGlassPreferences } from '@/components/glass/LiquidGlass';
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, Easing } from 'react-native-reanimated';
+import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { Canvas, Path, Group, Skia, LinearGradient as SkiaLinearGradient, vec } from '@shopify/react-native-skia';
 import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
 
 import { useTheme } from '@/hooks/useTheme';
 import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
@@ -20,23 +22,36 @@ import { getInitials } from '@/utils/format';
 import { useUIStore } from '@/stores/uiStore';
 
 const TABS = ['Overview', 'Products', 'Customers', 'Tax & Compliance'];
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+function useReportLayout() {
+  const { width, fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
+  const contentWidth = Math.min(width - 32, 1200);
+  return {
+    ...layout,
+    cardWidth: layout.compact ? contentWidth : (contentWidth - (layout.wide ? 36 : 12)) / (layout.wide ? 4 : 2),
+    scrollStyle: { padding: 16, paddingBottom: insets.bottom + 32, width: '100%' as const, maxWidth: 1232, alignSelf: 'center' as const },
+    tableWidth: Math.max(contentWidth, 620 * Math.max(1, fontScale)),
+  };
+}
 
 // ─── TAB COMPONENTS ──────────────────────────────────────────────────────────
 
 function OverviewTab({ from, to }: { from: string, to: string }) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const layout = useReportLayout();
   const { data: plData, isLoading: isLoadingPl } = useProfitLoss(from, to);
   const { data: rtData, isLoading: isLoadingRt } = useRevenueTrend('daily', '30d');
   const { data: pbData, isLoading: isLoadingPb } = usePaymentBehaviour();
 
   const [chartWidth, setChartWidth] = useState(0);
-  const progress = useSharedValue(0);
+  const { reduceMotion } = useGlassPreferences();
+  const progress = useSharedValue(1);
 
   useEffect(() => {
     progress.value = 0;
-    progress.value = withTiming(1, { duration: 1500, easing: Easing.out(Easing.cubic) });
-  }, [rtData]);
+    progress.value = reduceMotion ? 1 : withTiming(1, { duration: 450, easing: Easing.out(Easing.cubic) });
+  }, [rtData, reduceMotion, progress]);
 
   const { linePath, areaPath, points } = useMemo(() => {
     if (!rtData || chartWidth === 0) return { linePath: Skia.Path.Make(), areaPath: Skia.Path.Make(), points: [] };
@@ -98,23 +113,25 @@ function OverviewTab({ from, to }: { from: string, to: string }) {
   const hasRevenueData = (rtData?.length ?? 0) > 0;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+    <ScrollView contentContainerStyle={layout.scrollStyle} showsVerticalScrollIndicator={false}>
+       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
          {[ 
            { label: 'Gross Revenue', val: pl.totalRevenue, color: theme.colors.primary },
            { label: 'Net Profit', val: pl.netProfit, color: pl.netProfit >= 0 ? theme.colors.success : theme.colors.danger },
            { label: 'Total Returns', val: pl.totalReturns, color: theme.colors.warning },
            { label: 'Total Expenses', val: pl.expenses, color: theme.colors.danger }
          ].map((box, i) => (
-           <View key={i} style={[styles.box, { backgroundColor: theme.colors.surface, ...theme.shadow.card, width: '48%' }]}>
+           <LiquidPanel dark={isDark} key={i} style={[styles.box, { backgroundColor: theme.colors.surface, ...theme.shadow.card, width: layout.cardWidth }]}>
               <Text style={{ color: theme.colors.text.secondary, fontSize: 13 }}>{box.label}</Text>
               <Text style={{ color: box.color, fontFamily: theme.typography.family.bold, fontSize: 18, marginTop: 8 }}>{formatCurrency(box.val)}</Text>
-           </View>
+           </LiquidPanel>
          ))}
        </View>
 
-       <Text style={styles.sectionTitle}>Revenue Trend (30d)</Text>
-       <View style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]} onLayout={(e: LayoutChangeEvent) => setChartWidth(e.nativeEvent.layout.width - 32)}>
+       <ResponsiveGrid>
+       <View>
+       <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Revenue Trend (30d)</Text>
+       <LiquidPanel dark={isDark} style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]} onLayout={(e: LayoutChangeEvent) => setChartWidth(e.nativeEvent.layout.width - 32)}>
           {hasRevenueData ? (
             <>
               <Canvas style={{ width: '100%', height: 200 }}>
@@ -132,10 +149,12 @@ function OverviewTab({ from, to }: { from: string, to: string }) {
           ) : (
             <Text style={{ color: theme.colors.text.tertiary, textAlign: 'center', paddingVertical: 40 }}>No sales in the last 30 days.</Text>
           )}
-       </View>
+       </LiquidPanel>
 
-       <Text style={styles.sectionTitle}>Payment Behaviour</Text>
-       <View style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card, flexDirection: 'row', alignItems: 'center' }]}>
+       </View>
+       <View>
+       <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Payment Behaviour</Text>
+       <LiquidPanel dark={isDark} style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card, flexDirection: 'row', alignItems: 'center' }]}>
           {hasPaymentData ? (
             <>
               <View style={{ width: 180, height: 180, justifyContent: 'center', alignItems: 'center' }}>
@@ -159,10 +178,12 @@ function OverviewTab({ from, to }: { from: string, to: string }) {
           ) : (
             <Text style={{ color: theme.colors.text.tertiary, textAlign: 'center', flex: 1, paddingVertical: 24 }}>No payment data yet.</Text>
           )}
-       </View>
+       </LiquidPanel>
 
-       <Text style={styles.sectionTitle}>Outstanding Aging</Text>
-       <View style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card, gap: 16 }]}>
+       </View>
+       </ResponsiveGrid>
+       <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Outstanding Aging</Text>
+       <LiquidPanel dark={isDark} style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card, gap: 16 }]}>
           {[
             { label: '0-7 days', val: outstandingAmounts[0], color: theme.colors.success },
             { label: '8-30 days', val: outstandingAmounts[1], color: theme.colors.primary },
@@ -179,13 +200,14 @@ function OverviewTab({ from, to }: { from: string, to: string }) {
                </View>
              </View>
           ))}
-       </View>
+       </LiquidPanel>
     </ScrollView>
   );
 }
 
 function ProductsTab({ from, to }: { from: string; to: string }) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const layout = useReportLayout();
   const { data: perfData, isLoading: isLoadingPerf } = useMedicinePerformance({ from, to, sort: 'revenue' });
   const { data: invData, isLoading: isLoadingInv } = useInventoryHealth();
 
@@ -204,22 +226,21 @@ function ProductsTab({ from, to }: { from: string; to: string }) {
               { label: 'Turnover Ratio', val: `${invData.turnoverRatio}x` },
               { label: 'Days of Supply', val: `${invData.daysOfSupply} days` }
             ].map((box, i) => (
-              <View key={i} style={[styles.box, { backgroundColor: theme.colors.surface, ...theme.shadow.card, width: '48%' }]}>
+              <LiquidPanel dark={isDark} key={i} style={[styles.box, { backgroundColor: theme.colors.surface, ...theme.shadow.card, width: layout.cardWidth }]}>
                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>{box.label}</Text>
                  <Text style={{ color: box.color || theme.colors.primary, fontFamily: theme.typography.family.bold, fontSize: 16, marginTop: 8 }}>{box.val}</Text>
-              </View>
+              </LiquidPanel>
             ))}
           </View>
        </View>
        
-       <Text style={[styles.sectionTitle, { marginLeft: 16, marginTop: 8 }]}>Top Products by Revenue</Text>
+       <Text style={[styles.sectionTitle, { color: theme.colors.text.primary, marginLeft: 16, marginTop: 8 }]}>Top Products by Revenue</Text>
        {products.length === 0 ? (
          <Text style={{ color: theme.colors.text.tertiary, textAlign: 'center', marginTop: 24 }}>No product sales in this period.</Text>
        ) : (
-       <FlashListAny
+       <FlashList
          data={products}
          keyExtractor={(i: any) => i.medicineId}
-         estimatedItemSize={64}
          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
          renderItem={({ item, index }: any) => {
            let rankColor = theme.colors.text.tertiary;
@@ -252,14 +273,15 @@ function ProductsTab({ from, to }: { from: string; to: string }) {
 }
 
 function CustomersTab() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const layout = useReportLayout();
   const { data, isLoading } = useCustomerInsights();
 
   if (isLoading || !data) return <ActivityIndicator style={{ marginTop: 40 }} color={theme.colors.primary} size="large" />;
 
   const segments = [
-    { label: 'High Value', count: data.segments.highValue, sub: 'VIP Patients', bg: '#FEF3C7', col: '#B45309' },
-    { label: 'Regular', count: data.segments.regular, sub: 'Active', bg: theme.colors.successLight, col: theme.colors.success },
+    { label: 'High Value', count: data.segments.highValue, sub: 'VIP Patients', bg: theme.colors.warningLight, col: theme.colors.warning },
+    { label: 'Regular', count: data.segments.regular, sub: 'Active', bg: theme.colors.primaryLight, col: theme.colors.primary },
     { label: 'At Risk', count: data.segments.atRisk, sub: 'Need attention', bg: theme.colors.warningLight, col: theme.colors.warning },
     { label: 'Lost', count: data.segments.lost, sub: 'Inactive 60d+', bg: theme.colors.dangerLight, col: theme.colors.danger },
   ];
@@ -267,8 +289,8 @@ function CustomersTab() {
   const topCustomers = data.topCustomers;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+    <ScrollView contentContainerStyle={layout.scrollStyle}>
+       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
           <View style={[styles.statBoxLine, { borderColor: theme.colors.border }]}>
             <Text style={{ fontSize: 20, fontFamily: theme.typography.family.bold, color: theme.colors.primary }}>{data.newCustomersThisMonth}</Text>
             <Text style={{ fontSize: 11, color: theme.colors.text.secondary, textAlign: 'center' }}>New Users</Text>
@@ -283,19 +305,19 @@ function CustomersTab() {
           </View>
        </View>
 
-       <Text style={styles.sectionTitle}>Customer Segments</Text>
-       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+       <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Customer Segments</Text>
+       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
          {segments.map((seg, i) => (
-           <View key={i} style={[styles.box, { backgroundColor: seg.bg, width: '48%' }]}>
+           <LiquidPanel dark={isDark} key={i} style={[styles.box, { backgroundColor: seg.bg, width: layout.cardWidth }]}>
               <Text style={{ color: seg.col, fontFamily: theme.typography.family.bold, fontSize: 28 }}>{seg.count}</Text>
               <Text style={{ color: seg.col, fontFamily: theme.typography.family.semiBold, marginTop: 4 }}>{seg.label}</Text>
               <Text style={{ color: seg.col, fontSize: 11, opacity: 0.8 }}>{seg.sub}</Text>
-           </View>
+           </LiquidPanel>
          ))}
        </View>
 
-       <Text style={styles.sectionTitle}>Top 5 Customers</Text>
-       <View style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
+       <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Top 5 Customers</Text>
+       <LiquidPanel dark={isDark} style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
           {topCustomers.length === 0 ? (
             <Text style={{ color: theme.colors.text.tertiary, textAlign: 'center', padding: 16 }}>No customer data yet.</Text>
           ) : topCustomers.map((cust, idx) => (
@@ -313,13 +335,14 @@ function CustomersTab() {
                 </View>
              </View>
           ))}
-       </View>
+       </LiquidPanel>
     </ScrollView>
   );
 }
 
 function TaxTab({ from, to }: { from: string, to: string }) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const layout = useReportLayout();
   const { data: gstSales, isLoading: isLoadingGst } = useGstSales(from, to);
   const { data: h1Data, isLoading: isLoadingH1 } = useScheduleH1(from, to);
   const addToast = useUIStore(s => s.addToast);
@@ -370,32 +393,33 @@ function TaxTab({ from, to }: { from: string, to: string }) {
   const tTot = slabs.reduce((a,b)=>a+b.total,0);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+    <ScrollView contentContainerStyle={layout.scrollStyle}>
        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={styles.sectionTitle}>GST Summary (Sales)</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>GST Summary (Sales)</Text>
           <TouchableOpacity style={[styles.exportMiniBtn, { backgroundColor: theme.colors.primaryLight }]} onPress={() => exportCSV('GSTR1')}>
              <Ionicons name="download-outline" size={14} color={theme.colors.primary} />
              <Text style={{ color: theme.colors.primary, fontSize: 12, fontFamily: theme.typography.family.semiBold, marginLeft: 4 }}>Export GSTR-1</Text>
           </TouchableOpacity>
        </View>
 
-       <View style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card, padding: 0, overflow: 'hidden' }]}>
+       <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ paddingBottom: 6 }}>
+       <LiquidPanel dark={isDark} style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card, padding: 0, overflow: 'hidden', width: layout.tableWidth }]}>
          <View style={{ flexDirection: 'row', backgroundColor: theme.colors.background, padding: 12 }}>
-            <Text style={[styles.th, { flex: 0.6 }]}>Rate</Text>
-            <Text style={[styles.th, { flex: 1.2, textAlign: 'right' }]}>Taxable</Text>
-            <Text style={[styles.th, { flex: 1, textAlign: 'right' }]}>CGST</Text>
-            <Text style={[styles.th, { flex: 1, textAlign: 'right' }]}>SGST</Text>
-            <Text style={[styles.th, { flex: 1.2, textAlign: 'right' }]}>Gross</Text>
+            <Text style={[styles.th, { color: theme.colors.text.secondary, flex: 0.6 }]}>Rate</Text>
+            <Text style={[styles.th, { color: theme.colors.text.secondary, flex: 1.2, textAlign: 'right' }]}>Taxable</Text>
+            <Text style={[styles.th, { color: theme.colors.text.secondary, flex: 1, textAlign: 'right' }]}>CGST</Text>
+            <Text style={[styles.th, { color: theme.colors.text.secondary, flex: 1, textAlign: 'right' }]}>SGST</Text>
+            <Text style={[styles.th, { color: theme.colors.text.secondary, flex: 1.2, textAlign: 'right' }]}>Gross</Text>
          </View>
          {slabs.length === 0 ? (
            <Text style={{ color: theme.colors.text.tertiary, textAlign: 'center', padding: 16 }}>No GST sales in this period.</Text>
          ) : slabs.map((slab, i) => (
            <View key={i} style={{ flexDirection: 'row', padding: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-             <Text style={[styles.td, { flex: 0.6, fontFamily: theme.typography.family.semiBold }]}>{slab.rate}</Text>
-             <Text style={[styles.td, { flex: 1.2, textAlign: 'right' }]}>{formatCurrency(slab.taxable)}</Text>
+             <Text style={[styles.td, { color: theme.colors.text.primary, flex: 0.6, fontFamily: theme.typography.family.semiBold }]}>{slab.rate}</Text>
+             <Text style={[styles.td, { color: theme.colors.text.primary, flex: 1.2, textAlign: 'right' }]}>{formatCurrency(slab.taxable)}</Text>
              <Text style={[styles.td, { flex: 1, textAlign: 'right', color: theme.colors.text.tertiary }]}>{formatCurrency(slab.cgst)}</Text>
              <Text style={[styles.td, { flex: 1, textAlign: 'right', color: theme.colors.text.tertiary }]}>{formatCurrency(slab.sgst)}</Text>
-             <Text style={[styles.td, { flex: 1.2, textAlign: 'right', fontFamily: theme.typography.family.medium }]}>{formatCurrency(slab.total)}</Text>
+             <Text style={[styles.td, { color: theme.colors.text.primary, flex: 1.2, textAlign: 'right', fontFamily: theme.typography.family.medium }]}>{formatCurrency(slab.total)}</Text>
            </View>
          ))}
          {slabs.length > 0 && (
@@ -407,17 +431,18 @@ function TaxTab({ from, to }: { from: string, to: string }) {
              <Text style={[styles.td, { flex: 1.2, textAlign: 'right', fontFamily: theme.typography.family.bold, color: theme.colors.primary }]}>{formatCurrency(tTot)}</Text>
          </View>
          )}
-       </View>
+       </LiquidPanel>
+       </ScrollView>
 
        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 32 }}>
-          <Text style={styles.sectionTitle}>Schedule H1 Register</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>Schedule H1 Register</Text>
           <TouchableOpacity style={[styles.exportMiniBtn, { backgroundColor: theme.colors.primaryLight }]} onPress={() => exportCSV('H1')}>
              <Ionicons name="download-outline" size={14} color={theme.colors.primary} />
              <Text style={{ color: theme.colors.primary, fontSize: 12, fontFamily: theme.typography.family.semiBold, marginLeft: 4 }}>CSV</Text>
           </TouchableOpacity>
        </View>
 
-       <View style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
+       <LiquidPanel dark={isDark} style={[styles.chartCard, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}>
           {h1Data && h1Data.length > 0 ? h1Data.map((h1, idx) => (
              <View key={h1.saleId} style={[styles.custRow, idx !== h1Data.length -1 && { borderBottomWidth: 1, borderBottomColor: theme.colors.border }]}>
                <View style={{ flex: 1 }}>
@@ -429,7 +454,7 @@ function TaxTab({ from, to }: { from: string, to: string }) {
                </View>
              </View>
           )) : <Text style={{ color: theme.colors.text.tertiary, textAlign: 'center', padding: 16 }}>No Schedule H1 sales found in period.</Text>}
-       </View>
+       </LiquidPanel>
     </ScrollView>
   );
 }
@@ -437,22 +462,11 @@ function TaxTab({ from, to }: { from: string, to: string }) {
 // ─── MAIN SCREEN ─────────────────────────────────────────────────────────────
 
 export default function ReportsIndexScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const layout = useReportLayout();
   const insets = useSafeAreaInsets();
   
   const [activeTab, setActiveTab] = useState(0);
-  const indAnim = useSharedValue(0);
-
-  const TAB_WIDTH = Math.min((SCREEN_WIDTH - 32) / 4, 100);
-
-  useEffect(() => {
-    indAnim.value = withSpring(activeTab * TAB_WIDTH, { mass: 0.5, damping: 15, stiffness: 150 });
-  }, [activeTab]);
-
-  const indStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: indAnim.value }]
-  }));
-
   // Demo standard dates (beginning of month to now)
   const [from] = useState(new Date(new Date().setDate(1)).toISOString());
   const [to] = useState(new Date().toISOString());
@@ -460,7 +474,7 @@ export default function ReportsIndexScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <GlassMeshBackground />
-       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+       <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface }]}>
           <TouchableOpacity 
             onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
             style={{ padding: 12, marginLeft: -12, marginRight: 4 }} 
@@ -468,26 +482,22 @@ export default function ReportsIndexScreen() {
           >
             <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold, flex: 1 }]}>Reports & Analytics</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text.primary, fontFamily: theme.typography.family.bold, flex: 1, minWidth: 0, fontSize: layout.compact ? 20 : 24 }]}>Reports</Text>
           <View style={[styles.datePill, { backgroundColor: theme.colors.background }]}>
             <Ionicons name="calendar-outline" size={14} color={theme.colors.text.secondary} />
             <Text style={{ fontSize: 12, fontFamily: theme.typography.family.medium, color: theme.colors.text.secondary, marginLeft: 6 }}>This Month</Text>
           </View>
-       </View>
+       </LiquidPanel>
 
-       <View style={[styles.tabBar, { backgroundColor: theme.colors.surface }]}>
-         <View style={{ alignSelf: 'center', flex: 1, flexDirection: 'row', justifyContent: 'center', maxWidth: 400 }}>
-            {TABS.map((t, i) => (
-              <TouchableOpacity key={t} onPress={() => { Haptics.selectionAsync(); setActiveTab(i); }} style={[styles.tabBtn, { width: TAB_WIDTH }]}>
-                 <Text numberOfLines={1} style={{ 
-                   color: activeTab === i ? theme.colors.primary : theme.colors.text.secondary, 
-                   fontFamily: activeTab === i ? theme.typography.family.semiBold : theme.typography.family.medium,
-                   fontSize: 12 
-                 }}>{t}</Text>
-              </TouchableOpacity>
-            ))}
-            <Animated.View style={[styles.indicator, { backgroundColor: theme.colors.primary, width: TAB_WIDTH }, indStyle]} />
-         </View>
+       <View style={[styles.tabBar, { backgroundColor: theme.colors.background }]}>
+         <ScrollView horizontal style={{ width: '100%', flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}>
+           {TABS.map((t, i) => (
+             <TouchableOpacity key={t} accessibilityRole="tab" accessibilityState={{ selected: activeTab === i }} onPress={() => { void Haptics.selectionAsync().catch(() => {}); setActiveTab(i); }}
+               style={[styles.tabBtn, { backgroundColor: activeTab === i ? theme.colors.primaryLight : 'transparent', borderColor: activeTab === i ? theme.colors.primary + '30' : theme.colors.border }]}>
+               <Text style={{ color: activeTab === i ? theme.colors.primary : theme.colors.text.secondary, fontFamily: theme.typography.family.semiBold, fontSize: 13 }}>{t}</Text>
+             </TouchableOpacity>
+           ))}
+         </ScrollView>
        </View>
 
        <View style={styles.body}>
@@ -505,13 +515,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 12 },
   headerTitle: { fontSize: 24 },
   datePill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  tabBar: { borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.05)', alignItems: 'center' },
-  tabBtn: { height: 40, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  tabBar: { borderBottomWidth: 1, borderBottomColor: '#E4E9F2', alignItems: 'stretch', overflow: 'hidden' },
+  tabBtn: { minHeight: 44, paddingVertical: 10, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 14, borderRadius: 8, borderWidth: 1 },
   indicator: { position: 'absolute', bottom: 0, left: 0, height: 3, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
   body: { flex: 1 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  box: { padding: 16, borderRadius: 16 },
-  chartCard: { padding: 16, borderRadius: 16, marginBottom: 24 },
+  box: { padding: 16, borderRadius: 14 },
+  chartCard: { padding: 16, borderRadius: 14, marginBottom: 16 },
   rankCirle: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   statBoxLine: { flex: 1, height: 64, borderWidth: 1, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   avatarSm: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },

@@ -1,11 +1,15 @@
+import { mobileLayout } from '@/theme/mobileLayout';
+import { useGlassPreferences } from '@/components/glass/LiquidGlass';
+import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
+import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, TextInput, Alert, TouchableOpacity } from 'react-native';
+import { useWindowDimensions, View, Text, StyleSheet, ActivityIndicator, Animated, TextInput, Alert, TouchableOpacity } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import NetInfo from '@react-native-community/netinfo';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -13,7 +17,7 @@ import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 import { Canvas, Path, Skia } from '@shopify/react-native-skia';
 import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
+
 
 import { useTheme } from '@/hooks/useTheme';
 import { expensesApi, Expense, type ExpenseCategoryDb, type CreateExpenseBody } from '@/api/expenses';
@@ -50,6 +54,8 @@ function getCategoryIcon(cat: ExpenseCategoryDb): keyof typeof Ionicons.glyphMap
 export default function ExpensesIndexScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
   const addToast = useUIStore(s => s.addToast);
   const qc = useQueryClient();
 
@@ -138,18 +144,19 @@ export default function ExpensesIndexScreen() {
     }
   });
 
-  const progress = useSharedValue(0);
+  const { reduceMotion } = useGlassPreferences();
+  const progress = useSharedValue(1);
 
   useEffect(() => {
     progress.value = 0;
-    progress.value = withTiming(1, { duration: 1200, easing: Easing.out(Easing.cubic) });
-  }, [summary]);
+    progress.value = reduceMotion ? 1 : withTiming(1, { duration: 450, easing: Easing.out(Easing.cubic) });
+  }, [summary, reduceMotion, progress]);
 
   const donutPaths = useMemo(() => {
     if (!summary || !summary.byCategory.length) return [];
     let startAngle = 0;
     const cx = 60, cy = 60, r = 40;
-    const colors = [theme.colors.primary, theme.colors.accent, theme.colors.warning, theme.colors.danger, '#8B5CF6', '#14B8A6'];
+    const colors = [theme.colors.primary, theme.colors.accent, theme.colors.warning, theme.colors.danger, theme.colors.accent, theme.colors.primary];
     
     return summary.byCategory.map((item, i) => {
        const sweepAngle = (item.amount / summary.totalAmount) * 360;
@@ -203,14 +210,15 @@ export default function ExpensesIndexScreen() {
 
   const getCatColor = (cat: ExpenseCategoryDb) => {
     const idx = CATEGORY_OPTIONS.findIndex((o) => o.value === cat);
-    return [theme.colors.primary, theme.colors.accent, theme.colors.warning, theme.colors.danger, '#8B5CF6', '#14B8A6'][Math.max(0, idx)];
+    return [theme.colors.primary, theme.colors.accent, theme.colors.warning, theme.colors.danger, theme.colors.accent, theme.colors.primary][Math.max(0, idx)];
   };
 
   const expenses = useMemo(() => data?.pages.flatMap(p => p.data) || [], [data]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
+      <GlassMeshBackground />
+      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
          <TouchableOpacity 
            onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
            style={[styles.backBtn, { borderColor: theme.colors.border }]}
@@ -230,7 +238,7 @@ export default function ExpensesIndexScreen() {
                {summary ? formatCurrency(summary.totalAmount) : '...'}
             </Text>
          </View>
-      </View>
+      </LiquidPanel>
 
       {/* Period Selector Container */}
       <View style={[styles.segmentContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9', borderColor: theme.colors.border }]}>
@@ -258,10 +266,12 @@ export default function ExpensesIndexScreen() {
 
       <View style={{ flex: 1 }}>
         <FlashListAny
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
           data={expenses}
           keyExtractor={(i: Expense) => i.id}
           estimatedItemSize={68}
-          contentContainerStyle={{ paddingVertical: 12 }}
+          contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 6, paddingBottom: insets.bottom + 88 }}
           ListHeaderComponent={
              summary && summary.totalAmount > 0 ? (
                <View style={[styles.donutCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, ...theme.shadow.card }]}>
@@ -297,6 +307,7 @@ export default function ExpensesIndexScreen() {
           renderItem={({ item }: { item: Expense }) => (
             <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item.id)} friction={2}>
               <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <LiquidSheen dark={isDark} />
                 <View style={[styles.iconCircle, { backgroundColor: getCatColor(item.category) + '15' }]}>
                   <Ionicons name={getCategoryIcon(item.category)} size={18} color={getCatColor(item.category)} />
                 </View>
@@ -322,14 +333,9 @@ export default function ExpensesIndexScreen() {
          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); sheetRef.current?.expand(); }}
          activeOpacity={0.8}
       >
-         <LinearGradient
-            colors={[theme.colors.primary, '#0052A3']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.fabGradient}
-         >
-            <Ionicons name="add" size={28} color="#FFFFFF" />
-         </LinearGradient>
+         <View style={[styles.fabGradient, { backgroundColor: theme.colors.primary }]}>
+            <Ionicons name="add" size={28} color={theme.colors.text.inverse} />
+         </View>
       </TouchableOpacity>
 
       <BottomSheet ref={sheetRef} snapPoints={['65%']} title="Log Expense">
@@ -399,23 +405,15 @@ export default function ExpensesIndexScreen() {
                  onPress={submitExpense}
                  activeOpacity={0.8}
                >
-                 <LinearGradient
-                   colors={(!formAmount || !isOnline)
-                     ? [isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0']
-                     : [theme.colors.primary, '#0052A3']
-                   }
-                   start={{ x: 0, y: 0 }}
-                   end={{ x: 1, y: 0 }}
-                   style={[styles.submitBtn, { opacity: (!formAmount || !isOnline) ? 0.6 : 1 }]}
-                 >
+                 <View style={[styles.submitBtn, { backgroundColor: theme.colors.primary, opacity: (!formAmount || !isOnline) ? 0.6 : 1 }]}>
                    {createMutation.isPending ? (
-                     <ActivityIndicator color="#FFF" />
+                     <ActivityIndicator color={theme.colors.text.inverse} />
                    ) : (
-                     <Text style={{ color: (!formAmount || !isOnline) ? theme.colors.text.tertiary : '#FFF', fontFamily: theme.typography.family.bold, fontSize: 15 }}>
+                     <Text style={{ color: (!formAmount || !isOnline) ? theme.colors.text.tertiary : theme.colors.text.inverse, fontFamily: theme.typography.family.bold, fontSize: 15 }}>
                        {isOnline ? 'Save Expense' : 'No Connection'}
                      </Text>
                    )}
-                 </LinearGradient>
+                 </View>
                </TouchableOpacity>
             </View>
          </View>
@@ -436,7 +434,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -453,7 +451,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 4,
     borderRadius: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 6,
     marginTop: 14,
     marginBottom: 6,
     borderWidth: 1,
@@ -476,7 +474,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 18, 
     padding: 18, 
-    marginHorizontal: 16, 
+    marginHorizontal: 6,
     marginBottom: 20,
     borderWidth: 1,
   },
@@ -500,7 +498,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     borderRadius: 16, 
     padding: 14, 
-    marginHorizontal: 16, 
+    marginHorizontal: 6,
     marginBottom: 10,
     borderWidth: 1,
   },

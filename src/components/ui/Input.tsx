@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet, TextInputProps } from 'react-native';
+import { LiquidPanel } from '@/components/glass/LiquidGlass';
 import { useTheme } from '@/hooks/useTheme';
 
 export interface InputProps extends TextInputProps {
@@ -9,7 +10,7 @@ export interface InputProps extends TextInputProps {
 }
 
 export const Input: React.FC<InputProps> = ({ label, error, icon, style, ...props }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -18,19 +19,21 @@ export const Input: React.FC<InputProps> = ({ label, error, icon, style, ...prop
       <Text style={[styles.label, { color: isFocused ? theme.colors.primary : theme.colors.text.secondary }]}>
         {label}
       </Text>
-      <View
+      <LiquidPanel
+        dark={isDark}
         style={[
           styles.inputContainer,
           {
             borderColor: error ? theme.colors.danger : isFocused ? theme.colors.primary : theme.colors.border,
             borderRadius: theme.radius.input,
-            backgroundColor: theme.colors.surface,
           },
           style,
         ]}
       >
         {icon && <View style={styles.iconContainer}>{icon}</View>}
         <TextInput
+          {...props}
+          accessibilityLabel={props.accessibilityLabel ?? label}
           style={[
             styles.input,
             { color: theme.colors.text.primary, fontFamily: theme.typography.family.regular, fontSize: theme.typography.size.base },
@@ -44,9 +47,8 @@ export const Input: React.FC<InputProps> = ({ label, error, icon, style, ...prop
             setIsFocused(false);
             props.onBlur?.(e);
           }}
-          {...props}
         />
-      </View>
+      </LiquidPanel>
       {error && <Text style={[styles.error, { color: theme.colors.danger }]}>{error}</Text>}
     </View>
   );
@@ -65,12 +67,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    height: 48,
+    minHeight: 48,
     paddingHorizontal: 12,
   },
   input: {
     flex: 1,
-    height: '100%',
+    minHeight: 48,
+    paddingVertical: 12,
   },
   iconContainer: {
     marginRight: 8,

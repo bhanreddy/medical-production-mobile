@@ -1,10 +1,13 @@
+import { mobileLayout } from '@/theme/mobileLayout';
+import { GlassMeshBackground } from '@/components/ui/GlassMeshBackground';
+import { LiquidPanel, LiquidSheen } from '@/components/glass/LiquidGlass';
 import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, ActivityIndicator, Animated } from 'react-native';
+import { useWindowDimensions, View, Text, StyleSheet, TextInput, ActivityIndicator, Animated } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -32,8 +35,10 @@ function useSuppliersPaginated(search: string) {
 }
 
 export default function SuppliersIndexScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
   const addToast = useUIStore(s => s.addToast);
   const qc = useQueryClient();
 
@@ -97,9 +102,10 @@ export default function SuppliersIndexScreen() {
   const renderSupplier = ({ item }: { item: Supplier }) => (
     <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item)} friction={2}>
       <TouchableOpacity 
-        style={[styles.card, { backgroundColor: theme.colors.surface, ...theme.shadow.card }]}
+        style={[styles.card, { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }]}
         onPress={() => router.push(`/(app)/suppliers/${item.id}`)}
       >
+        <LiquidSheen dark={isDark} />
         <View style={[styles.avatar, { backgroundColor: theme.colors.accentLight }]}>
           <Text style={[styles.avatarText, { color: theme.colors.accent, fontFamily: theme.typography.family.bold }]}>
             {getInitials(item.name)}
@@ -124,7 +130,8 @@ export default function SuppliersIndexScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <GlassMeshBackground />
+      <LiquidPanel dark={isDark} variant="header" style={[styles.header, { backgroundColor: theme.colors.surface }]}>
          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
             <TouchableOpacity 
               onPress={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/dashboard')} 
@@ -145,18 +152,20 @@ export default function SuppliersIndexScreen() {
              onChangeText={handleSearch}
            />
          </View>
-      </View>
+      </LiquidPanel>
 
       <View style={{ flex: 1 }}>
         {isLoading && !data ? (
           <ActivityIndicator style={{ marginTop: 40 }} size="large" color={theme.colors.primary} />
         ) : (
           <FlashListAny
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
             data={suppliers}
             keyExtractor={(i: Supplier) => i.id}
             estimatedItemSize={84}
             renderItem={renderSupplier}
-            contentContainerStyle={{ paddingVertical: 12 }}
+            contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 6, paddingBottom: insets.bottom + 88 }}
             onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
             onEndReachedThreshold={0.5}
             ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.text.tertiary }}>No suppliers found.</Text>}
@@ -166,7 +175,7 @@ export default function SuppliersIndexScreen() {
       </View>
 
       <TouchableOpacity 
-         style={[styles.fab, { backgroundColor: theme.colors.primary, ...theme.shadow.card }]}
+         style={[styles.fab, { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: theme.colors.border }]}
          onPress={() => router.push('/(app)/suppliers/add')} // Optional add route fallback
       >
          <Ionicons name="add" size={28} color="#FFFFFF" />
@@ -204,7 +213,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: 16, paddingBottom: 16, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.05)' },
   searchBar: { flexDirection: 'row', alignItems: 'center', height: 48, borderRadius: 12, paddingHorizontal: 12 },
-  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 16, marginHorizontal: 16, marginBottom: 10 },
+  card: { borderWidth: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 14, marginHorizontal: 6, marginBottom: 10 },
   avatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   avatarText: { fontSize: 16 },
   centerCol: { flex: 1 },

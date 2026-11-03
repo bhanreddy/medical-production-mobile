@@ -7,6 +7,7 @@ import {
   Pressable,
   type TextInputProps,
   type KeyboardTypeOptions,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -15,7 +16,8 @@ import Animated, {
   interpolate,
   interpolateColor,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { LiquidPanel, useGlassPreferences } from '@/components/glass/LiquidGlass';
 import { useTheme } from '@/hooks/useTheme';
 
 /* ─── Props ─────────────────────────────────────────── */
@@ -47,7 +49,9 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
   editable = true,
   testID,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const { reduceMotion } = useGlassPreferences();
+  const { fontScale } = useWindowDimensions();
   const [isFocused, setIsFocused] = useState(false);
   const [isSecureVisible, setIsSecureVisible] = useState(!secureTextEntry);
 
@@ -57,8 +61,8 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
   const isActive = isFocused || value.length > 0;
 
   useEffect(() => {
-    labelProgress.value = withTiming(isActive ? 1 : 0, { duration: 180 });
-  }, [isActive, labelProgress]);
+    labelProgress.value = reduceMotion ? (isActive ? 1 : 0) : withTiming(isActive ? 1 : 0, { duration: 160 });
+  }, [isActive, labelProgress, reduceMotion]);
 
   /* ─── Animated Styles ───────────────────────────────── */
 
@@ -99,13 +103,14 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
 
   return (
     <View style={styles.container}>
-      <View
+      <LiquidPanel dark={isDark}
         style={[
           styles.inputWrapper,
+          { height: Math.max(56, 44 + 16 * fontScale) },
           {
             borderColor,
             borderWidth,
-            borderRadius: theme.radius.card,
+            borderRadius: theme.radius.input,
             backgroundColor: theme.colors.surface,
           },
         ]}
@@ -138,6 +143,7 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
               fontSize: theme.typography.size.base,
             },
           ]}
+          accessibilityLabel={label}
           value={value}
           onChangeText={onChangeText}
           onFocus={handleFocus}
@@ -153,6 +159,8 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
         {/* Right Icon — eye toggle or custom */}
         {secureTextEntry ? (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isSecureVisible ? 'Hide password' : 'Show password'}
             onPress={toggleSecure}
             style={styles.iconButton}
             hitSlop={8}
@@ -166,7 +174,7 @@ export const FloatingInput: React.FC<FloatingInputProps> = ({
         ) : rightIcon ? (
           <View style={styles.iconButton}>{rightIcon}</View>
         ) : null}
-      </View>
+      </LiquidPanel>
 
       {/* Error Text */}
       {error ? (
@@ -213,7 +221,10 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   iconButton: {
-    padding: 4,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginLeft: 8,
   },
   errorText: {

@@ -1,10 +1,11 @@
+import { mobileLayout } from '@/theme/mobileLayout';
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { useWindowDimensions, View, Text, StyleSheet, ActivityIndicator, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -27,6 +28,8 @@ function formatRel(dateStr: string) {
 export default function ShortbookIndexScreen() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const layout = mobileLayout(width, fontScale, insets.bottom);
   const addToast = useUIStore(s => s.addToast);
   const qc = useQueryClient();
 
@@ -172,10 +175,12 @@ export default function ShortbookIndexScreen() {
             <ActivityIndicator style={{ marginTop: 40 }} size="large" color={theme.colors.primary} />
           ) : (
             <FlashListAny
+              key={layout.listColumns}
+              numColumns={layout.listColumns}
               data={shortbook || []}
               keyExtractor={(i: ShortbookItem) => i.id}
               estimatedItemSize={90}
-              contentContainerStyle={{ paddingVertical: 12 }}
+              contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 6, paddingBottom: insets.bottom + 88 }}
               renderItem={renderItem}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: '20%', paddingHorizontal: 32 }}>
@@ -233,7 +238,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 16, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.05)' },
   countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 8 },
-  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 16, marginHorizontal: 16, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 14, marginHorizontal: 6, marginBottom: 10 },
   stockBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   orderedBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   markBtn: { height: 32, width: 95, borderRadius: 16, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
